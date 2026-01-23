@@ -11,8 +11,14 @@ import {
     UniversalCamera,
     StandardMaterial,
     CubeTexture,
+    Mesh,
 } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
+import { Client, getStateCallbacks, Room } from "colyseus.js";
+
+interface PlayerRoomType {
+    players: { x: number; y: number; z: number }[];
+}
 
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement | null;
 
@@ -20,12 +26,14 @@ if (!canvas) {
     throw new Error("Canvas element not found.");
 }
 
-const GND_WIDTH = 100;
-const GND_HEIGHT = 100;
+const GND_WIDTH = 50;
+const GND_HEIGHT = 50;
 const PLAYER_HEIGHT = 2;
 const PLAYER_WIDTH = 1;
 
 const engine = new Engine(canvas, true);
+const playerEntities: { [key: string]: Mesh } = {};
+const playerNextPosition: { [key: string]: Vector3 } = {};
 
 const setupScene = function (engine: Engine) {
     const scene = new Scene(engine);
@@ -67,7 +75,7 @@ const createPlayerMesh = function (scene: Scene) {
     return playerMesh;
 };
 
-const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene) {
+const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Room) {
     const playerMesh = createPlayerMesh(scene);
 
     // Create camera
@@ -88,6 +96,8 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene) {
     const gravity = 0.02;
     let verticalVelocity = 0;
     let isGrounded = false;
+    let lastPositionSend = 0;
+    const positionSendIntervalMs = 100;
 
     window.addEventListener("keydown", (e) => {
         if (e.key.toLowerCase() === "escape") {
@@ -154,7 +164,23 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene) {
         }
 
         playerMesh.moveWithCollisions(movement);
+
+        // Debounced position updates to server
+        const now = performance.now();
+        if (
+            (movement.x !== 0 || movement.y !== 0 || movement.z !== 0) &&
+            now - lastPositionSend >= positionSendIntervalMs
+        ) {
+            lastPositionSend = now;
+            room.send("updatePosition", {
+                x: playerMesh.position.x,
+                y: playerMesh.position.y,
+                z: playerMesh.position.z,
+            });
+        }
     });
+
+    return { camera, playerMesh };
 };
 
 const createScene = async function () {
@@ -165,7 +191,50 @@ const createScene = async function () {
     const physicsPlugin = new HavokPlugin(true, havokInstance);
     scene.enablePhysics(gravityVector, physicsPlugin);
 
-    setupCamera(canvas, scene);
+    const client = new Client(import.meta.env.VITE_SERVER_URL);
+    let room: Room | null;
+    try {
+        room = await client.joinOrCreate("central");
+        const $ = getStateCallbacks<PlayerRoomType>(room);
+
+        $(room.state).players.onAdd((player, sessionId) => {
+            const isCurrentPlayer = sessionId === room.sessionId;
+
+            // create player Sphere
+            if (isCurrentPlayer) {
+                playerMesh.position.set(player.x, player.y, player.z);
+            } else {
+                const remotePlayerMesh = MeshBuilder.CreateSphere(
+                    `player-${sessionId}`,
+                    {
+                        segments: 8,
+                        diameter: 2,
+                    },
+                    scene
+                );
+
+                remotePlayerMesh.position.set(player.x, player.y, player.z);
+                playerEntities[sessionId] = remotePlayerMesh;
+                playerNextPosition[sessionId] = sphere.position.clone();
+            }
+
+            $(player).onChange(function () {
+                if (isCurrentPlayer) {
+                } else {
+                    playerNextPosition[sessionId].set(player.x, player.y, player.z);
+                }
+            });
+        });
+
+        $(room.state).players.onRemove(function (player, sessionId) {
+            playerEntities[sessionId].dispose();
+            delete playerEntities[sessionId];
+        });
+    } catch (error) {
+        console.error("An error occurred: ", error);
+    }
+
+    const { playerMesh } = setupCamera(canvas, scene, room!);
     setupLight(scene);
     setupSkybox(scene);
 
@@ -184,6 +253,15 @@ const createScene = async function () {
     );
 
     const groundAggregate = new PhysicsAggregate(ground, PhysicsShapeType.BOX, { mass: 0 }, scene);
+
+    // Remote Movement Loop
+    scene.registerBeforeRender(() => {
+        for (let sessionId in playerEntities) {
+            var entity = playerEntities[sessionId];
+            var targetPosition = playerNextPosition[sessionId];
+            entity.position = Vector3.Lerp(entity.position, targetPosition, 0.05);
+        }
+    });
 
     return scene;
 };

@@ -124,6 +124,8 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
     // Create camera
     const camera = new UniversalCamera("player_camera", new Vector3(0, PLAYER_HEIGHT, 0), scene);
     camera.attachControl(canvas, true);
+    camera.touchAngularSensibility = Infinity; // Disable default touch rotation
+    camera.touchMoveSensibility = Infinity; // Disable default touch movement
     camera.parent = playerMesh;
 
     // Disable arrow keys
@@ -158,6 +160,169 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
     window.addEventListener("keyup", (e) => {
         inputMap[e.key.toUpperCase()] = false;
     });
+
+    // Mobile touch controls
+    let touchLookX = 0;
+    let touchLookY = 0;
+    let lastTouchX = 0;
+    let lastTouchY = 0;
+    const lookSensitivity = 0.005;
+
+    const isMobile = () => {
+        return (
+            /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+            navigator.maxTouchPoints > 0
+        );
+    };
+
+    const setupMobileControls = () => {
+        // Only show on mobile
+        if (!isMobile()) return;
+
+        // Left side: movement joystick area
+        const joystickContainer = document.createElement("div");
+        joystickContainer.style.position = "fixed";
+        joystickContainer.style.bottom = "20px";
+        joystickContainer.style.left = "20px";
+        joystickContainer.style.width = "120px";
+        joystickContainer.style.height = "120px";
+        joystickContainer.style.borderRadius = "50%";
+        joystickContainer.style.background = "rgba(255, 255, 255, 0.1)";
+        joystickContainer.style.border = "2px solid rgba(255, 255, 255, 0.3)";
+        joystickContainer.style.zIndex = "100";
+        joystickContainer.style.touchAction = "none";
+
+        const joystickHandle = document.createElement("div");
+        joystickHandle.style.position = "absolute";
+        joystickHandle.style.width = "40px";
+        joystickHandle.style.height = "40px";
+        joystickHandle.style.borderRadius = "50%";
+        joystickHandle.style.background = "rgba(255, 255, 255, 0.3)";
+        joystickHandle.style.top = "50%";
+        joystickHandle.style.left = "50%";
+        joystickHandle.style.transform = "translate(-50%, -50%)";
+        joystickHandle.style.transition = "all 0.1s ease-out";
+
+        joystickContainer.appendChild(joystickHandle);
+        document.body.appendChild(joystickContainer);
+
+        // Right side: look around area (invisible touch zone)
+        const lookZone = document.createElement("div");
+        lookZone.style.position = "fixed";
+        lookZone.style.right = "0";
+        lookZone.style.top = "0";
+        lookZone.style.width = "50%";
+        lookZone.style.height = "100%";
+        lookZone.style.zIndex = "1";
+        lookZone.style.touchAction = "none";
+        document.body.appendChild(lookZone);
+
+        // Jump button
+        const jumpBtn = document.createElement("button");
+        jumpBtn.textContent = "↑";
+        jumpBtn.style.position = "fixed";
+        jumpBtn.style.bottom = "40px";
+        jumpBtn.style.right = "40px";
+        jumpBtn.style.padding = "15px 25px";
+        jumpBtn.style.fontSize = "16px";
+        jumpBtn.style.background = "#3b82f6";
+        jumpBtn.style.color = "white";
+        jumpBtn.style.border = "none";
+        jumpBtn.style.borderRadius = "50%";
+        jumpBtn.style.aspectRatio = "1";
+        jumpBtn.style.cursor = "pointer";
+        jumpBtn.style.zIndex = "100";
+        jumpBtn.style.touchAction = "manipulation";
+        document.body.appendChild(jumpBtn);
+
+        jumpBtn.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            if (isGrounded) {
+                verticalVelocity = jumpForce;
+                isGrounded = false;
+            }
+        });
+
+        // Joystick touch handler
+        let joystickTouchId: number | null = null;
+        joystickContainer.addEventListener("touchstart", (e) => {
+            joystickTouchId = e.touches[0].identifier;
+            updateJoystick(e);
+        });
+
+        joystickContainer.addEventListener("touchmove", (e) => {
+            updateJoystick(e);
+        });
+
+        const clearJoystick = () => {
+            joystickTouchId = null;
+            inputMap["W"] = false;
+            inputMap["A"] = false;
+            inputMap["S"] = false;
+            inputMap["D"] = false;
+            joystickHandle.style.transform = "translate(-50%, -50%)";
+        };
+
+        joystickContainer.addEventListener("touchend", clearJoystick);
+        joystickContainer.addEventListener("touchcancel", clearJoystick);
+
+        const updateJoystick = (e: TouchEvent) => {
+            const rect = joystickContainer.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            const touch = Array.from(e.touches).find((t) => t.identifier === joystickTouchId) || e.touches[0];
+            const dx = touch.clientX - centerX;
+            const dy = touch.clientY - centerY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const maxDistance = 50;
+
+            // Update handle position
+            const handleDistance = Math.min(distance, maxDistance);
+            const angle = Math.atan2(dy, dx);
+            const handleX = centerX + Math.cos(angle) * handleDistance;
+            const handleY = centerY + Math.sin(angle) * handleDistance;
+            const offsetX = handleX - rect.left - rect.width / 2;
+            const offsetY = handleY - rect.top - rect.height / 2;
+            joystickHandle.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
+
+            // Update movement based on joystick position
+            inputMap["W"] = false;
+            inputMap["A"] = false;
+            inputMap["S"] = false;
+            inputMap["D"] = false;
+
+            const threshold = 15;
+            if (dy < -threshold) inputMap["W"] = true;
+            if (dy > threshold) inputMap["S"] = true;
+            if (dx < -threshold) inputMap["A"] = true;
+            if (dx > threshold) inputMap["D"] = true;
+        };
+
+        // Look around with right side touch
+        lookZone.addEventListener("touchstart", (e) => {
+            lastTouchX = e.touches[0].clientX;
+            lastTouchY = e.touches[0].clientY;
+        });
+
+        lookZone.addEventListener("touchmove", (e) => {
+            const touch = e.touches[0];
+            const deltaX = touch.clientX - lastTouchX;
+            const deltaY = touch.clientY - lastTouchY;
+
+            lastTouchX = touch.clientX;
+            lastTouchY = touch.clientY;
+
+            // Rotate camera based on touch movement
+            camera.rotation.y -= deltaX * lookSensitivity;
+            camera.rotation.x -= deltaY * lookSensitivity;
+
+            // Clamp vertical look
+            camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
+        });
+    };
+
+    setupMobileControls();
 
     // Request pointer lock on canvas click
     canvas.addEventListener("click", () => {

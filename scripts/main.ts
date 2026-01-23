@@ -12,12 +12,13 @@ import {
     StandardMaterial,
     CubeTexture,
     Mesh,
+    DynamicTexture,
 } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
 import { Client, getStateCallbacks, Room } from "colyseus.js";
 
 interface PlayerRoomType {
-    players: { x: number; y: number; z: number }[];
+    players: { x: number; y: number; z: number; name?: string }[];
 }
 
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement | null;
@@ -31,9 +32,21 @@ const GND_HEIGHT = 50;
 const PLAYER_HEIGHT = 2;
 const PLAYER_WIDTH = 1;
 
+const ADJECTIVES = ["Brave", "Swift", "Clever", "Gentle", "Lucky", "Nimble", "Calm", "Bright"];
+const ANIMALS = ["Fox", "Otter", "Panda", "Hawk", "Wolf", "Dolphin", "Lynx", "Koala"];
+
+const generateFriendlyName = (): string => {
+    const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+    const animal = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
+    return `${adj} ${animal}`;
+};
+
 const engine = new Engine(canvas, true);
+let activeScene: Scene | null = null;
+let gameStarted = false;
 const playerEntities: { [key: string]: Mesh } = {};
 const playerNextPosition: { [key: string]: Vector3 } = {};
+const playerLabels: { [key: string]: Mesh } = {};
 
 const setupScene = function (engine: Engine) {
     const scene = new Scene(engine);
@@ -73,6 +86,36 @@ const createPlayerMesh = function (scene: Scene) {
     playerMesh.checkCollisions = true;
 
     return playerMesh;
+};
+
+const createNameLabel = (name: string, scene: Scene) => {
+    const plane = MeshBuilder.CreatePlane("nameplate", { size: 2 }, scene);
+    plane.billboardMode = Mesh.BILLBOARDMODE_ALL;
+    plane.isPickable = false;
+    plane.position.y = 1.6;
+    plane.scaling.y = -1; // flip so text is upright
+
+    const texture = new DynamicTexture("nameplate-texture", { width: 256, height: 128 }, scene, false);
+    texture.hasAlpha = true;
+    texture.drawText(name, null, 80, "bold 36px Arial", "white", "transparent", true);
+
+    const mat = new StandardMaterial("nameplate-mat", scene);
+    mat.diffuseTexture = texture;
+    mat.emissiveColor = new Color3(1, 1, 1);
+    mat.backFaceCulling = false;
+
+    plane.material = mat;
+    return plane;
+};
+
+const updateNameLabel = (labelMesh: Mesh | undefined, name: string) => {
+    if (!labelMesh || !labelMesh.material) return;
+    const mat = labelMesh.material as StandardMaterial;
+    const texture = mat.diffuseTexture as DynamicTexture | null;
+    if (!texture) return;
+    texture.clear();
+    texture.drawText(name, null, 80, "bold 36px Arial", "white", "transparent", true);
+    texture.update(false);
 };
 
 const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Room) {
@@ -174,7 +217,7 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
             lastPositionSend = now;
             room.send("updatePosition", {
                 x: playerMesh.position.x,
-                y: playerMesh.position.y,
+                y: playerMesh.position.y + 1, // TODO: Do we need to add one here? since the height of player mesh is 2 but remote player is 1
                 z: playerMesh.position.z,
             });
         }
@@ -183,7 +226,7 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
     return { camera, playerMesh };
 };
 
-const createScene = async function () {
+const createScene = async function (nickname: string) {
     const scene = setupScene(engine);
 
     const gravityVector = new Vector3(0, -9.81, 0);
@@ -194,7 +237,8 @@ const createScene = async function () {
     const client = new Client(import.meta.env.VITE_SERVER_URL);
     let room: Room | null;
     try {
-        room = await client.joinOrCreate("central");
+        room = await client.joinOrCreate("central", { nickname });
+        room.send("setName", { name: nickname });
         const $ = getStateCallbacks<PlayerRoomType>(room);
 
         $(room.state).players.onAdd((player, sessionId) => {
@@ -215,13 +259,20 @@ const createScene = async function () {
 
                 remotePlayerMesh.position.set(player.x, player.y, player.z);
                 playerEntities[sessionId] = remotePlayerMesh;
-                playerNextPosition[sessionId] = sphere.position.clone();
+                playerNextPosition[sessionId] = remotePlayerMesh.position.clone();
+
+                const label = createNameLabel(player.name ?? "Player", scene);
+                label.parent = remotePlayerMesh;
+                playerLabels[sessionId] = label;
             }
 
             $(player).onChange(function () {
                 if (isCurrentPlayer) {
                 } else {
                     playerNextPosition[sessionId].set(player.x, player.y, player.z);
+                    if (player.name) {
+                        updateNameLabel(playerLabels[sessionId], player.name);
+                    }
                 }
             });
         });
@@ -229,6 +280,8 @@ const createScene = async function () {
         $(room.state).players.onRemove(function (player, sessionId) {
             playerEntities[sessionId].dispose();
             delete playerEntities[sessionId];
+            playerLabels[sessionId]?.dispose();
+            delete playerLabels[sessionId];
         });
     } catch (error) {
         console.error("An error occurred: ", error);
@@ -266,30 +319,86 @@ const createScene = async function () {
     return scene;
 };
 
-const scene = await createScene();
+// Simple main menu overlay with nickname input and start button
+const createMainMenu = (onStart: (nickname: string) => void) => {
+    // TODO: Consider moving this to html?
+    const overlay = document.createElement("div");
+    overlay.style.position = "fixed";
+    overlay.style.inset = "0";
+    overlay.style.background = "rgba(0, 0, 0, 0.8)";
+    overlay.style.display = "flex";
+    overlay.style.flexDirection = "column";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+    overlay.style.gap = "12px";
+    overlay.style.color = "white";
+    overlay.style.fontFamily = "sans-serif";
+    overlay.style.zIndex = "999";
 
-let inspectorActive = false;
+    const header = document.createElement("h1");
+    header.textContent = "Heritage World";
+    header.style.margin = "0";
+    overlay.appendChild(header);
 
-window.addEventListener("keydown", async (e) => {
-    if (e.key.toLowerCase() === "f" && import.meta.env.DEV) {
-        inspectorActive = !inspectorActive;
+    const title = document.createElement("h2");
+    title.textContent = "Enter your nickname";
+    title.style.margin = "0";
+    overlay.appendChild(title);
 
-        if (inspectorActive) {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = generateFriendlyName();
+    input.style.padding = "8px 12px";
+    input.style.borderRadius = "6px";
+    input.style.border = "1px solid #444";
+    input.style.minWidth = "220px";
+    overlay.appendChild(input);
+
+    const startBtn = document.createElement("button");
+    startBtn.textContent = "Start";
+    startBtn.style.padding = "10px 16px";
+    startBtn.style.border = "none";
+    startBtn.style.borderRadius = "6px";
+    startBtn.style.cursor = "pointer";
+    startBtn.style.background = "#3b82f6";
+    startBtn.style.color = "white";
+    startBtn.style.fontWeight = "bold";
+    overlay.appendChild(startBtn);
+
+    startBtn.addEventListener("click", async () => {
+        if (gameStarted) return;
+        gameStarted = true;
+        overlay.remove();
+        await startGame(input.value.trim() || input.value);
+    });
+
+    document.body.appendChild(overlay);
+};
+
+const startGame = async (nickname: string) => {
+    activeScene = await createScene(nickname);
+
+    // Inspector toggle (dev only)
+    let inspectorActive = false;
+    window.addEventListener("keydown", async (e) => {
+        if (e.key.toLowerCase() === "f" && import.meta.env.DEV) {
+            inspectorActive = !inspectorActive;
             const { Inspector } = await import("@babylonjs/inspector");
-            Inspector.Show(scene, {
-                embedMode: true,
-            });
-        } else {
-            const { Inspector } = await import("@babylonjs/inspector");
-            Inspector.Hide();
+            if (inspectorActive) {
+                Inspector.Show(activeScene!, { embedMode: true });
+            } else {
+                Inspector.Hide();
+            }
         }
-    }
-});
+    });
 
-engine.runRenderLoop(function () {
-    scene.render();
-});
+    engine.runRenderLoop(function () {
+        activeScene?.render();
+    });
 
-window.addEventListener("resize", function () {
-    engine.resize();
-});
+    window.addEventListener("resize", function () {
+        engine.resize();
+    });
+};
+
+createMainMenu(startGame);

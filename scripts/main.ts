@@ -5,6 +5,8 @@ import {
     Color3,
     HemisphericLight,
     MeshBuilder,
+    ArcRotateCamera,
+    PointerEventTypes,
     HavokPlugin,
     PhysicsAggregate,
     PhysicsShapeType,
@@ -13,6 +15,10 @@ import {
     CubeTexture,
     Mesh,
     DynamicTexture,
+    Animation,
+    CubicEase,
+    EasingFunction,
+    Color4,
 } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
 import { Client, getStateCallbacks, Room } from "colyseus.js";
@@ -108,6 +114,37 @@ const createNameLabel = (name: string, scene: Scene) => {
     return plane;
 };
 
+const createBillboardLabel = (text: string, scene: Scene) => {
+    // Calculate dimensions based on text length
+    const textLength = text.length;
+    const textureWidth = Math.max(512, textLength * 80);
+    const textureHeight = 128;
+    const planeWidth = Math.max(4, textLength * 0.5);
+    const planeHeight = 1;
+
+    const plane = MeshBuilder.CreatePlane(`map-label-${text}`, { width: planeWidth, height: planeHeight }, scene);
+    plane.billboardMode = Mesh.BILLBOARDMODE_ALL;
+    plane.isPickable = false;
+    plane.position.y = 2.5;
+
+    const texture = new DynamicTexture(
+        `map-label-texture-${text}`,
+        { width: textureWidth, height: textureHeight },
+        scene,
+        false
+    );
+    texture.hasAlpha = true;
+    texture.drawText(text, null, null, "bold 128px Arial", "white", "transparent", true, true);
+
+    const mat = new StandardMaterial(`map-label-mat-${text}`, scene);
+    mat.diffuseTexture = texture;
+    mat.emissiveColor = new Color3(1, 1, 1);
+    mat.backFaceCulling = false;
+
+    plane.material = mat;
+    return plane;
+};
+
 const updateNameLabel = (labelMesh: Mesh | undefined, name: string) => {
     if (!labelMesh || !labelMesh.material) return;
     const mat = labelMesh.material as StandardMaterial;
@@ -162,8 +199,6 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
     });
 
     // Mobile touch controls
-    let touchLookX = 0;
-    let touchLookY = 0;
     let lastTouchX = 0;
     let lastTouchY = 0;
     const lookSensitivity = 0.005;
@@ -407,7 +442,7 @@ const createScene = async function (nickname: string) {
         const $ = getStateCallbacks<PlayerRoomType>(room);
 
         $(room.state).players.onAdd((player, sessionId) => {
-            const isCurrentPlayer = sessionId === room.sessionId;
+            const isCurrentPlayer = sessionId === room?.sessionId;
 
             // create player Sphere
             if (isCurrentPlayer) {
@@ -474,10 +509,306 @@ const createScene = async function (nickname: string) {
 
     // Remote Movement Loop
     scene.registerBeforeRender(() => {
-        for (let sessionId in playerEntities) {
-            var entity = playerEntities[sessionId];
-            var targetPosition = playerNextPosition[sessionId];
+        for (const sessionId in playerEntities) {
+            const entity = playerEntities[sessionId];
+            const targetPosition = playerNextPosition[sessionId];
             entity.position = Vector3.Lerp(entity.position, targetPosition, 0.05);
+        }
+    });
+
+    return scene;
+};
+
+const createMapScene = () => {
+    const scene = setupScene(engine);
+    scene.collisionsEnabled = false;
+
+    const camera = new ArcRotateCamera("map_camera", -Math.PI / 2, Math.PI / 3, 60, Vector3.Zero(), scene);
+    camera.lowerBetaLimit = Math.PI / 3;
+    camera.upperBetaLimit = Math.PI / 2.2;
+    camera.lowerRadiusLimit = 30;
+    camera.upperRadiusLimit = 80;
+    camera.attachControl(canvas, true);
+
+    setupLight(scene);
+    scene.clearColor = new Color4(220 / 255, 220 / 255, 220 / 255, 1);
+
+    // Create header with tip
+    const headerTip = document.createElement("div");
+    headerTip.textContent = "Tip: click on a site for more details";
+    headerTip.style.position = "fixed";
+    headerTip.style.top = "20px";
+    headerTip.style.left = "50%";
+    headerTip.style.transform = "translateX(-50%)";
+    headerTip.style.padding = "12px 24px";
+    headerTip.style.fontSize = "18px";
+    headerTip.style.fontWeight = "500";
+    headerTip.style.color = "white";
+    headerTip.style.background = "rgba(0, 0, 0, 0.5)";
+    headerTip.style.borderRadius = "8px";
+    headerTip.style.zIndex = "100";
+    headerTip.style.pointerEvents = "none";
+    document.body.appendChild(headerTip);
+
+    // Create description box (hidden by default)
+    const descriptionBox = document.createElement("div");
+    descriptionBox.style.position = "fixed";
+    descriptionBox.style.bottom = "110px";
+    descriptionBox.style.left = "50%";
+    descriptionBox.style.transform = "translateX(-50%)";
+    descriptionBox.style.padding = "16px 24px";
+    descriptionBox.style.maxWidth = "500px";
+    descriptionBox.style.fontSize = "20px";
+    descriptionBox.style.lineHeight = "1.5";
+    descriptionBox.style.color = "white";
+    descriptionBox.style.background = "rgba(0, 0, 0, 0.7)";
+    descriptionBox.style.borderRadius = "8px";
+    descriptionBox.style.zIndex = "100";
+    descriptionBox.style.display = "none";
+    descriptionBox.style.textAlign = "center";
+    document.body.appendChild(descriptionBox);
+
+    // Create Start Experience button (hidden by default)
+    const startExperienceBtn = document.createElement("button");
+    startExperienceBtn.textContent = "Start Experience";
+    startExperienceBtn.style.position = "fixed";
+    startExperienceBtn.style.bottom = "40px";
+    startExperienceBtn.style.left = "50%";
+    startExperienceBtn.style.transform = "translateX(-50%)";
+    startExperienceBtn.style.padding = "12px 24px";
+    startExperienceBtn.style.fontSize = "24px";
+    startExperienceBtn.style.fontWeight = "bold";
+    startExperienceBtn.style.background = "#3b82f6";
+    startExperienceBtn.style.color = "white";
+    startExperienceBtn.style.border = "none";
+    startExperienceBtn.style.borderRadius = "8px";
+    startExperienceBtn.style.cursor = "pointer";
+    startExperienceBtn.style.zIndex = "100";
+    startExperienceBtn.style.display = "none";
+    startExperienceBtn.style.transition = "opacity 0.3s ease";
+    document.body.appendChild(startExperienceBtn);
+
+    let currentFocusedSite: string | null = null;
+
+    // Reusable function to animate camera focus
+    const animateCameraFocus = (
+        targetPosition: Vector3,
+        targetRadius: number,
+        targetAlpha?: number,
+        animationDuration = 60,
+        onComplete?: () => void
+    ) => {
+        const animations: Animation[] = [];
+
+        // Animate camera target
+        const targetAnimation = new Animation(
+            "cameraTargetAnimation",
+            "target",
+            60,
+            Animation.ANIMATIONTYPE_VECTOR3,
+            Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        targetAnimation.setKeys([
+            { frame: 0, value: camera.target.clone() },
+            { frame: animationDuration, value: targetPosition },
+        ]);
+
+        const easingFunction = new CubicEase();
+        easingFunction.setEasingMode(EasingFunction.EASINGMODE_EASEINOUT);
+        targetAnimation.setEasingFunction(easingFunction);
+        animations.push(targetAnimation);
+
+        // Animate camera radius
+        const radiusAnimation = new Animation(
+            "cameraRadiusAnimation",
+            "radius",
+            60,
+            Animation.ANIMATIONTYPE_FLOAT,
+            Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        radiusAnimation.setKeys([
+            { frame: 0, value: camera.radius },
+            { frame: animationDuration, value: targetRadius },
+        ]);
+        radiusAnimation.setEasingFunction(easingFunction);
+        animations.push(radiusAnimation);
+
+        // Optionally animate camera alpha (horizontal rotation)
+        if (targetAlpha !== undefined) {
+            const currentAlpha = camera.alpha;
+            let deltaAlpha = targetAlpha - currentAlpha;
+
+            // Normalize to [-PI, PI] for shortest rotation path
+            while (deltaAlpha > Math.PI) deltaAlpha -= 2 * Math.PI;
+            while (deltaAlpha < -Math.PI) deltaAlpha += 2 * Math.PI;
+
+            const finalAlpha = currentAlpha + deltaAlpha;
+
+            const alphaAnimation = new Animation(
+                "cameraAlphaAnimation",
+                "alpha",
+                60,
+                Animation.ANIMATIONTYPE_FLOAT,
+                Animation.ANIMATIONLOOPMODE_CONSTANT
+            );
+            alphaAnimation.setKeys([
+                { frame: 0, value: currentAlpha },
+                { frame: animationDuration, value: finalAlpha },
+            ]);
+            alphaAnimation.setEasingFunction(easingFunction);
+            animations.push(alphaAnimation);
+        }
+
+        // Apply animations
+        camera.animations = animations;
+        const animatable = scene.beginAnimation(camera, 0, animationDuration, false);
+        if (onComplete) {
+            animatable.onAnimationEnd = onComplete;
+        }
+    };
+
+    startExperienceBtn.addEventListener("click", () => {
+        if (currentFocusedSite) {
+            console.log(`Starting experience for: ${currentFocusedSite}`);
+            // Clean up map scene UI
+            headerTip.remove();
+            descriptionBox.remove();
+            startExperienceBtn.remove();
+            // Show main menu for nickname entry
+            createMainMenu(startGame);
+        }
+    });
+
+    // ESC key handler to remove focus
+    window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && currentFocusedSite) {
+            currentFocusedSite = null;
+            startExperienceBtn.style.display = "none";
+            descriptionBox.style.display = "none";
+            animateCameraFocus(Vector3.Zero(), 60);
+        }
+    });
+
+    const ground = MeshBuilder.CreateGround("map_ground", { width: 50, height: 80 }, scene);
+    ground.isPickable = true;
+    const groundMat = new StandardMaterial("map_ground_mat", scene);
+    groundMat.diffuseColor = new Color3(210 / 255, 210 / 255, 210 / 255);
+    ground.material = groundMat;
+
+    // const surface = MeshBuilder.CreateGround("map_surface", { width: 300, height: 300 }, scene);
+    // surface.position.y = -0.25;
+    // surface.isPickable = true;
+    // const surfaceMat = new StandardMaterial("map_surface_mat", scene);
+    // surfaceMat.diffuseColor = new Color3(205 / 255, 205 / 255, 205 / 255);
+    // surface.material = surfaceMat;
+
+    const sites = [
+        {
+            id: "1",
+            name: "Hosh Al-Bay'ah Collection",
+            position: new Vector3(-20, 1, 25),
+            description:
+                "A historic collection showcasing traditional architecture and cultural heritage of the region.",
+        },
+        {
+            id: "2",
+            name: "Old City of Mosul",
+            position: new Vector3(-15, 1, 15),
+            description:
+                "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
+        },
+        {
+            id: "3",
+            name: "Erbil Citadel",
+            position: new Vector3(-5, 1, 10),
+            description:
+                "One of the oldest continuously inhabited settlements in the world, a UNESCO World Heritage site.",
+        },
+        {
+            id: "4",
+            name: "Baghdad Museum",
+            position: new Vector3(1, 1, 1),
+            description:
+                "Home to priceless artifacts from Mesopotamian civilizations and Iraq's rich cultural history.",
+        },
+        {
+            id: "5",
+            name: "Uruk City",
+            position: new Vector3(2.5, 1, -12.5),
+            description:
+                "Ancient Sumerian city-state, birthplace of writing and one of the world's first great cities.",
+        },
+        {
+            id: "6",
+            name: "Al-Chibayish Marshlands",
+            position: new Vector3(15, 1, -25),
+            description: "Unique wetland ecosystem, home to the Marsh Arabs and diverse wildlife in southern Iraq.",
+        },
+    ];
+
+    sites.forEach((site) => {
+        const box = MeshBuilder.CreateBox(`site-${site.id}`, { size: 4 }, scene);
+        box.position.copyFrom(site.position);
+        box.isPickable = true;
+
+        const boxMat = new StandardMaterial(`site-mat-${site.id}`, scene);
+        boxMat.diffuseColor = new Color3(246 / 255, 215 / 255, 176 / 255);
+        box.material = boxMat;
+
+        const label = createBillboardLabel(site.name, scene);
+        label.parent = box;
+        label.position.y = 3;
+    });
+
+    scene.onPointerObservable.add((pointerInfo) => {
+        if (pointerInfo.type !== PointerEventTypes.POINTERPICK) return;
+        if (pointerInfo.pickInfo?.hit && pointerInfo.pickInfo.pickedMesh?.name.startsWith("site-")) {
+            const clickedMesh = pointerInfo.pickInfo.pickedMesh;
+            const target = clickedMesh.name.replace("site-", "");
+            console.log(`Site ${target} clicked. Navigation not implemented yet.`);
+
+            currentFocusedSite = target;
+            startExperienceBtn.style.display = "none";
+            descriptionBox.style.display = "none";
+
+            // Find and display site description
+            const siteData = sites.find((s) => s.id === target);
+            if (siteData) {
+                descriptionBox.textContent = siteData.description;
+            }
+
+            // Animate camera to focus on the clicked cube
+            const targetPosition = clickedMesh.position.clone();
+            targetPosition.y = 0; // Focus on ground level of the cube
+
+            const targetRadius = 20; // Fixed distance from the site
+            const animationDuration = 2 * 60; // frames (1 second at 60fps)
+
+            // Calculate optimal alpha angle to face the site
+            const dx = targetPosition.x - camera.target.x;
+            const dz = targetPosition.z - camera.target.z;
+            const targetAlpha = Math.atan2(dx, dz);
+
+            // Find shortest rotation path
+            const currentAlpha = camera.alpha;
+            let deltaAlpha = targetAlpha - currentAlpha;
+
+            // Normalize to [-PI, PI]
+            while (deltaAlpha > Math.PI) deltaAlpha -= 2 * Math.PI;
+            while (deltaAlpha < -Math.PI) deltaAlpha += 2 * Math.PI;
+
+            const finalAlpha = currentAlpha + deltaAlpha;
+
+            animateCameraFocus(targetPosition, targetRadius, finalAlpha, animationDuration, () => {
+                startExperienceBtn.style.display = "block";
+                descriptionBox.style.display = "block";
+            });
+        } else if (pointerInfo.pickInfo?.hit && pointerInfo.pickInfo.pickedMesh?.name === "map_ground") {
+            // Clicking the ground refocuses to center
+            currentFocusedSite = null;
+            startExperienceBtn.style.display = "none";
+            descriptionBox.style.display = "none";
+            animateCameraFocus(Vector3.Zero(), 60);
         }
     });
 
@@ -490,7 +821,7 @@ const createMainMenu = (onStart: (nickname: string) => void) => {
     const overlay = document.createElement("div");
     overlay.style.position = "fixed";
     overlay.style.inset = "0";
-    overlay.style.background = "rgba(0, 0, 0, 0.8)";
+    overlay.style.background = "rgba(0, 0, 0, 0.85)";
     overlay.style.display = "flex";
     overlay.style.flexDirection = "column";
     overlay.style.alignItems = "center";
@@ -520,7 +851,7 @@ const createMainMenu = (onStart: (nickname: string) => void) => {
     overlay.appendChild(input);
 
     const startBtn = document.createElement("button");
-    startBtn.textContent = "Start";
+    startBtn.textContent = "Begin";
     startBtn.style.padding = "10px 16px";
     startBtn.style.border = "none";
     startBtn.style.borderRadius = "6px";
@@ -534,13 +865,14 @@ const createMainMenu = (onStart: (nickname: string) => void) => {
         if (gameStarted) return;
         gameStarted = true;
         overlay.remove();
-        await startGame(input.value.trim() || input.value);
+        onStart(input.value.trim() || input.value);
     });
 
     document.body.appendChild(overlay);
 };
 
 const startGame = async (nickname: string) => {
+    activeScene?.dispose();
     activeScene = await createScene(nickname);
 
     // Inspector toggle (dev only)
@@ -556,14 +888,14 @@ const startGame = async (nickname: string) => {
             }
         }
     });
-
-    engine.runRenderLoop(function () {
-        activeScene?.render();
-    });
-
-    window.addEventListener("resize", function () {
-        engine.resize();
-    });
 };
 
-createMainMenu(startGame);
+activeScene = createMapScene();
+
+engine.runRenderLoop(function () {
+    activeScene?.render();
+});
+
+window.addEventListener("resize", function () {
+    engine.resize();
+});

@@ -773,6 +773,7 @@ const createMapScene = async () => {
             position: new Vector3(-15, 1, 15),
             description:
                 "A historic collection showcasing traditional architecture and cultural heritage of the region.",
+            modelPath: null,
         },
         {
             id: "2",
@@ -780,6 +781,7 @@ const createMapScene = async () => {
             position: new Vector3(-12, 1, 11),
             description:
                 "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
+            modelPath: null,
         },
         {
             id: "3",
@@ -787,6 +789,7 @@ const createMapScene = async () => {
             position: new Vector3(-7.5, 1, 12.5),
             description:
                 "One of the oldest continuously inhabited settlements in the world, a UNESCO World Heritage site.",
+            modelPath: null,
         },
         {
             id: "4",
@@ -794,6 +797,7 @@ const createMapScene = async () => {
             position: new Vector3(-1.5, 1, -1),
             description:
                 "Home to priceless artifacts from Mesopotamian civilizations and Iraq's rich cultural history.",
+            modelPath: null,
         },
         {
             id: "5",
@@ -801,27 +805,62 @@ const createMapScene = async () => {
             position: new Vector3(0, 1, -15),
             description:
                 "Ancient Sumerian city-state, birthplace of writing and one of the world's first great cities.",
+            modelPath: null,
         },
         {
             id: "6",
             name: "Al-Chibayish Marshlands",
             position: new Vector3(15, 1, -19),
             description: "Unique wetland ecosystem, home to the Marsh Arabs and diverse wildlife in southern Iraq.",
+            modelPath: "./assets/models/mudhif.glb",
         },
     ];
 
-    sites.forEach((site) => {
-        const box = MeshBuilder.CreateBox(`site-${site.id}`, { size: 2 }, scene);
-        box.position.copyFrom(site.position);
-        box.isPickable = true;
+    sites.forEach(async (site) => {
+        // Create invisible clickable box for all sites (for detecting clicks)
+        const clickBox = MeshBuilder.CreateBox(`site-${site.id}`, { size: 2 }, scene);
+        clickBox.position.copyFrom(site.position);
+        clickBox.isPickable = true;
+        clickBox.visibility = 0; // Invisible but still pickable
 
-        const boxMat = new StandardMaterial(`site-mat-${site.id}`, scene);
-        boxMat.diffuseColor = new Color3(246 / 255, 215 / 255, 176 / 255);
-        box.material = boxMat;
+        if (site.modelPath) {
+            // Load 3D model if modelPath is provided
+            const modelData = await ImportMeshAsync(site.modelPath, scene);
+            const rootMesh = modelData.meshes[0];
 
+            if (rootMesh) {
+                // Calculate bounding box to find center
+                const boundingInfo = rootMesh.getHierarchyBoundingVectors();
+                const center = boundingInfo.max.add(boundingInfo.min).scale(0.5);
+
+                // Move model so its center is at origin
+                rootMesh.position.subtractInPlace(center);
+            }
+
+            // Create parent container for positioning
+            const siteContainer = new TransformNode(`site-model-${site.id}`, scene);
+            siteContainer.position.copyFrom(site.position);
+            siteContainer.scaling = new Vector3(0.075, 0.075, 0.075);
+
+            // Parent all meshes to the container
+            modelData.meshes.forEach((mesh) => {
+                if (mesh.parent === null) {
+                    mesh.parent = siteContainer;
+                }
+                mesh.isPickable = false; // Don't pick individual model meshes
+            });
+        } else {
+            // Create visible material for box if no model is provided
+            const boxMat = new StandardMaterial(`site-mat-${site.id}`, scene);
+            boxMat.diffuseColor = new Color3(246 / 255, 215 / 255, 176 / 255);
+            clickBox.material = boxMat;
+            clickBox.visibility = 1; // Make visible
+        }
+
+        // Create and position label above the site
         const label = createBillboardLabel(site.name, scene);
-        label.parent = box;
-        label.position.y = 3;
+        label.position.copyFrom(site.position);
+        label.position.y += 3;
     });
 
     scene.onPointerObservable.add((pointerInfo) => {
@@ -941,23 +980,23 @@ const createMainMenu = (onStart: (nickname: string) => void) => {
 const startGame = async (nickname: string) => {
     activeScene?.dispose();
     activeScene = await createScene(nickname);
-
-    let inspectorActive = false;
-    window.addEventListener("keydown", async (e) => {
-        if (e.key.toLowerCase() === "f") {
-            inspectorActive = !inspectorActive;
-            const { Inspector } = await import("@babylonjs/inspector");
-            if (inspectorActive) {
-                Inspector.Show(activeScene!, { embedMode: true });
-            } else {
-                Inspector.Hide();
-            }
-        }
-    });
 };
 
 registerBuiltInLoaders();
 activeScene = await createMapScene();
+
+let inspectorActive = false;
+window.addEventListener("keydown", async (e) => {
+    if (e.key.toLowerCase() === "f") {
+        inspectorActive = !inspectorActive;
+        const { Inspector } = await import("@babylonjs/inspector");
+        if (inspectorActive) {
+            Inspector.Show(activeScene!, { embedMode: true });
+        } else {
+            Inspector.Hide();
+        }
+    }
+});
 
 engine.runRenderLoop(function () {
     activeScene?.render();

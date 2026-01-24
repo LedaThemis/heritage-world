@@ -21,6 +21,7 @@ import {
     Color4,
     ImportMeshAsync,
     TransformNode,
+    SSAO2RenderingPipeline,
 } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
 import { Client, getStateCallbacks, Room } from "colyseus.js";
@@ -577,6 +578,18 @@ const createMapScene = async () => {
     setupLight(scene);
     scene.clearColor = new Color4(220 / 255, 220 / 255, 220 / 255, 1);
 
+    // Enable ambient occlusion
+    const ssao = new SSAO2RenderingPipeline("ssao", scene, {
+        ssaoRatio: 0.5,
+        blurRatio: 1,
+    });
+    ssao.radius = 2;
+    ssao.totalStrength = 1.3;
+    ssao.expensiveBlur = true;
+    ssao.samples = 16;
+    ssao.maxZ = 250;
+    scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("ssao", camera);
+
     // Create header with tip
     const headerTip = document.createElement("div");
     headerTip.textContent = "Tip: click on a site for more details";
@@ -759,12 +772,26 @@ const createMapScene = async () => {
         mesh.isPickable = true;
     });
 
-    // const surface = MeshBuilder.CreateGround("map_surface", { width: 300, height: 300 }, scene);
-    // surface.position.y = -0.25;
-    // surface.isPickable = true;
-    // const surfaceMat = new StandardMaterial("map_surface_mat", scene);
-    // surfaceMat.diffuseColor = new Color3(205 / 255, 205 / 255, 205 / 255);
-    // surface.material = surfaceMat;
+    // Create fog wall cylinder around the perimeter
+    const fogWall = MeshBuilder.CreateCylinder(
+        "fog_wall",
+        {
+            height: 120,
+            diameter: 180,
+            tessellation: 64,
+        },
+        scene
+    );
+    fogWall.position.y = 15;
+    fogWall.isPickable = false;
+    fogWall.visibility = 0;
+
+    const fogMaterial = new StandardMaterial("fog_mat", scene);
+    fogMaterial.diffuseColor = new Color3(0.9, 0.9, 0.9);
+    fogMaterial.emissiveColor = new Color3(0.85, 0.85, 0.85);
+    fogMaterial.alpha = 0.85;
+    fogMaterial.backFaceCulling = false;
+    fogWall.material = fogMaterial;
 
     const sites = [
         {

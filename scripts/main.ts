@@ -435,57 +435,52 @@ const createScene = async function (nickname: string) {
     scene.enablePhysics(gravityVector, physicsPlugin);
 
     const client = new Client(import.meta.env.VITE_SERVER_URL);
-    let room: Room | null;
-    try {
-        room = await client.joinOrCreate("central", { nickname });
-        room.send("setName", { name: nickname });
-        const $ = getStateCallbacks<PlayerRoomType>(room);
+    const room = await client.joinOrCreate("central", { nickname });
+    room.send("setName", { name: nickname });
+    const $ = getStateCallbacks<PlayerRoomType>(room);
 
-        $(room.state).players.onAdd((player, sessionId) => {
-            const isCurrentPlayer = sessionId === room?.sessionId;
+    $(room.state).players.onAdd((player, sessionId) => {
+        const isCurrentPlayer = sessionId === room?.sessionId;
 
-            // create player Sphere
+        // create player Sphere
+        if (isCurrentPlayer) {
+            playerMesh.position.set(player.x, player.y, player.z);
+        } else {
+            const remotePlayerMesh = MeshBuilder.CreateSphere(
+                `player-${sessionId}`,
+                {
+                    segments: 8,
+                    diameter: 2,
+                },
+                scene
+            );
+
+            remotePlayerMesh.position.set(player.x, player.y, player.z);
+            playerEntities[sessionId] = remotePlayerMesh;
+            playerNextPosition[sessionId] = remotePlayerMesh.position.clone();
+
+            const label = createNameLabel(player.name ?? "Player", scene);
+            label.parent = remotePlayerMesh;
+            playerLabels[sessionId] = label;
+        }
+
+        $(player).onChange(function () {
             if (isCurrentPlayer) {
-                playerMesh.position.set(player.x, player.y, player.z);
             } else {
-                const remotePlayerMesh = MeshBuilder.CreateSphere(
-                    `player-${sessionId}`,
-                    {
-                        segments: 8,
-                        diameter: 2,
-                    },
-                    scene
-                );
-
-                remotePlayerMesh.position.set(player.x, player.y, player.z);
-                playerEntities[sessionId] = remotePlayerMesh;
-                playerNextPosition[sessionId] = remotePlayerMesh.position.clone();
-
-                const label = createNameLabel(player.name ?? "Player", scene);
-                label.parent = remotePlayerMesh;
-                playerLabels[sessionId] = label;
-            }
-
-            $(player).onChange(function () {
-                if (isCurrentPlayer) {
-                } else {
-                    playerNextPosition[sessionId].set(player.x, player.y, player.z);
-                    if (player.name) {
-                        updateNameLabel(playerLabels[sessionId], player.name);
-                    }
+                playerNextPosition[sessionId].set(player.x, player.y, player.z);
+                if (player.name) {
+                    updateNameLabel(playerLabels[sessionId], player.name);
                 }
-            });
+            }
         });
+    });
 
-        $(room.state).players.onRemove(function (player, sessionId) {
-            playerEntities[sessionId].dispose();
-            delete playerEntities[sessionId];
-            playerLabels[sessionId]?.dispose();
-            delete playerLabels[sessionId];
-        });
-    } catch (error) {
-        console.error("An error occurred: ", error);
-    }
+    $(room.state).players.onRemove(function (player, sessionId) {
+        playerEntities[sessionId].dispose();
+        delete playerEntities[sessionId];
+        playerLabels[sessionId]?.dispose();
+        delete playerLabels[sessionId];
+    });
 
     const { playerMesh } = setupCamera(canvas, scene, room!);
     setupLight(scene);

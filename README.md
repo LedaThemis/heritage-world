@@ -12,21 +12,25 @@ A 3D interactive heritage site explorer built with Babylon.js and Vite.
 ### Getting Started
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Create a `.env` file with your server URL:
+
 ```env
 VITE_SERVER_URL=http://localhost:2567
 ```
 
 3. Start the development server:
+
 ```bash
 npm run dev
 ```
 
 4. Build for production:
+
 ```bash
 npm run build
 ```
@@ -84,7 +88,7 @@ server {
     # Enable gzip compression
     gzip on;
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
-    
+
     # Cache static assets
     location ~* \.(jpg|jpeg|png|gif|ico|css|js|glb|gltf)$ {
         expires 1y;
@@ -126,6 +130,7 @@ nano deploy-server.sh
 ```
 
 Edit the `GITHUB_REPO` variable to match your repository:
+
 ```bash
 GITHUB_REPO="yourusername/threejs-3d"
 ```
@@ -150,6 +155,7 @@ export GITHUB_TOKEN='your_github_personal_access_token'
 ```
 
 The script will:
+
 - Download the latest successful build from GitHub Actions
 - Create a backup of the current deployment
 - Extract and deploy the new build
@@ -159,6 +165,7 @@ The script will:
 #### 7. Verify Deployment
 
 Push to the `main` branch and GitHub Actions will automatically:
+
 1. Check code formatting
 2. Run linting
 3. Build the project
@@ -171,6 +178,7 @@ Once the build completes successfully, run the deployment script on your server 
 ### Deployment Workflow
 
 **Every push to main:**
+
 1. GitHub Actions builds the project automatically
 2. A tarball artifact is created and stored for 7 days
 3. SSH into your server and run `./deploy-server.sh` to deploy

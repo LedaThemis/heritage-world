@@ -415,11 +415,12 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
             now - lastPositionSend >= positionSendIntervalMs
         ) {
             lastPositionSend = now;
-            room.send("updatePosition", {
-                x: playerMesh.position.x,
-                y: playerMesh.position.y + 1, // TODO: Do we need to add one here? since the height of player mesh is 2 but remote player is 1
-                z: playerMesh.position.z,
-            });
+            if (room)
+                room.send("updatePosition", {
+                    x: playerMesh.position.x,
+                    y: playerMesh.position.y + 1, // TODO: Do we need to add one here? since the height of player mesh is 2 but remote player is 1
+                    z: playerMesh.position.z,
+                });
         }
     });
 
@@ -434,53 +435,98 @@ const createScene = async function (nickname: string) {
     const physicsPlugin = new HavokPlugin(true, havokInstance);
     scene.enablePhysics(gravityVector, physicsPlugin);
 
-    const client = new Client(import.meta.env.VITE_SERVER_URL);
-    const room = await client.joinOrCreate("central", { nickname });
-    room.send("setName", { name: nickname });
-    const $ = getStateCallbacks<PlayerRoomType>(room);
+    // Create connection status header
+    const statusHeader = document.createElement("div");
+    statusHeader.textContent = "CONNECTING...";
+    statusHeader.style.position = "fixed";
+    statusHeader.style.top = "20px";
+    statusHeader.style.right = "20px";
+    statusHeader.style.padding = "8px 16px";
+    statusHeader.style.fontSize = "14px";
+    statusHeader.style.fontWeight = "bold";
+    statusHeader.style.color = "white";
+    statusHeader.style.background = "rgba(200, 200, 0, 0.7)";
+    statusHeader.style.borderRadius = "6px";
+    statusHeader.style.zIndex = "100";
+    statusHeader.style.fontFamily = "monospace";
+    document.body.appendChild(statusHeader);
 
-    $(room.state).players.onAdd((player, sessionId) => {
-        const isCurrentPlayer = sessionId === room?.sessionId;
-
-        // create player Sphere
-        if (isCurrentPlayer) {
-            playerMesh.position.set(player.x, player.y, player.z);
+    const updateStatus = (status: "ONLINE" | "OFFLINE") => {
+        statusHeader.textContent = status;
+        if (status === "ONLINE") {
+            statusHeader.style.background = "rgba(0, 200, 0, 0.7)";
         } else {
-            const remotePlayerMesh = MeshBuilder.CreateSphere(
-                `player-${sessionId}`,
-                {
-                    segments: 8,
-                    diameter: 2,
-                },
-                scene
-            );
-
-            remotePlayerMesh.position.set(player.x, player.y, player.z);
-            playerEntities[sessionId] = remotePlayerMesh;
-            playerNextPosition[sessionId] = remotePlayerMesh.position.clone();
-
-            const label = createNameLabel(player.name ?? "Player", scene);
-            label.parent = remotePlayerMesh;
-            playerLabels[sessionId] = label;
+            statusHeader.style.background = "rgba(200, 0, 0, 0.7)";
         }
+    };
 
-        $(player).onChange(function () {
-            if (isCurrentPlayer) {
-            } else {
-                playerNextPosition[sessionId].set(player.x, player.y, player.z);
-                if (player.name) {
-                    updateNameLabel(playerLabels[sessionId], player.name);
-                }
-            }
+    const client = new Client(import.meta.env.VITE_SERVER_URL);
+    let room: Room | null;
+    try {
+        room = await client.joinOrCreate("central", { nickname });
+        room.send("setName", { name: nickname });
+        const $ = getStateCallbacks<PlayerRoomType>(room);
+
+        // Update status to online when connected
+        updateStatus("ONLINE");
+
+        // Listen for disconnect events
+        room.onLeave((code) => {
+            console.log("Disconnected from server:", code);
+            updateStatus("OFFLINE");
         });
-    });
 
-    $(room.state).players.onRemove(function (player, sessionId) {
-        playerEntities[sessionId].dispose();
-        delete playerEntities[sessionId];
-        playerLabels[sessionId]?.dispose();
-        delete playerLabels[sessionId];
-    });
+        room.onError((code, message) => {
+            console.error("Room error:", code, message);
+            updateStatus("OFFLINE");
+        });
+
+        $(room.state).players.onAdd((player, sessionId) => {
+            const isCurrentPlayer = sessionId === room?.sessionId;
+
+            // create player Sphere
+            if (isCurrentPlayer) {
+                playerMesh.position.set(player.x, player.y, player.z);
+            } else {
+                const remotePlayerMesh = MeshBuilder.CreateSphere(
+                    `player-${sessionId}`,
+                    {
+                        segments: 8,
+                        diameter: 2,
+                    },
+                    scene
+                );
+
+                remotePlayerMesh.position.set(player.x, player.y, player.z);
+                playerEntities[sessionId] = remotePlayerMesh;
+                playerNextPosition[sessionId] = remotePlayerMesh.position.clone();
+
+                const label = createNameLabel(player.name ?? "Player", scene);
+                label.parent = remotePlayerMesh;
+                playerLabels[sessionId] = label;
+            }
+
+            $(player).onChange(function () {
+                if (isCurrentPlayer) {
+                } else {
+                    playerNextPosition[sessionId].set(player.x, player.y, player.z);
+                    if (player.name) {
+                        updateNameLabel(playerLabels[sessionId], player.name);
+                    }
+                }
+            });
+        });
+
+        $(room.state).players.onRemove(function (player, sessionId) {
+            playerEntities[sessionId].dispose();
+            delete playerEntities[sessionId];
+            playerLabels[sessionId]?.dispose();
+            delete playerLabels[sessionId];
+        });
+    } catch (error) {
+        console.error("Room error:", error);
+        updateStatus("OFFLINE");
+    }
 
     const { playerMesh } = setupCamera(canvas, scene, room!);
     setupLight(scene);
@@ -664,7 +710,6 @@ const createMapScene = () => {
 
     startExperienceBtn.addEventListener("click", () => {
         if (currentFocusedSite) {
-            console.log(`Starting experience for: ${currentFocusedSite}`);
             // Clean up map scene UI
             headerTip.remove();
             descriptionBox.remove();
@@ -760,7 +805,6 @@ const createMapScene = () => {
         if (pointerInfo.pickInfo?.hit && pointerInfo.pickInfo.pickedMesh?.name.startsWith("site-")) {
             const clickedMesh = pointerInfo.pickInfo.pickedMesh;
             const target = clickedMesh.name.replace("site-", "");
-            console.log(`Site ${target} clicked. Navigation not implemented yet.`);
 
             currentFocusedSite = target;
             startExperienceBtn.style.display = "none";

@@ -777,7 +777,7 @@ const createMapScene = async () => {
         {
             id: "2",
             name: "Old City of Mosul",
-            position: new Vector3(-12.5, 1, 11),
+            position: new Vector3(-12, 1, 11),
             description:
                 "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
         },

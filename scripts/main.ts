@@ -19,9 +19,12 @@ import {
     CubicEase,
     EasingFunction,
     Color4,
+    ImportMeshAsync,
+    TransformNode,
 } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
 import { Client, getStateCallbacks, Room } from "colyseus.js";
+import { registerBuiltInLoaders } from "@babylonjs/loaders/dynamic";
 
 interface PlayerRoomType {
     players: { x: number; y: number; z: number; name?: string }[];
@@ -560,14 +563,14 @@ const createScene = async function (nickname: string) {
     return scene;
 };
 
-const createMapScene = () => {
+const createMapScene = async () => {
     const scene = setupScene(engine);
     scene.collisionsEnabled = false;
 
     const camera = new ArcRotateCamera("map_camera", -Math.PI / 2, Math.PI / 3, 60, Vector3.Zero(), scene);
-    camera.lowerBetaLimit = Math.PI / 3;
+    camera.lowerBetaLimit = Math.PI / 6;
     camera.upperBetaLimit = Math.PI / 2.2;
-    camera.lowerRadiusLimit = 30;
+    camera.lowerRadiusLimit = 20;
     camera.upperRadiusLimit = 80;
     camera.attachControl(canvas, true);
 
@@ -729,11 +732,32 @@ const createMapScene = () => {
         }
     });
 
-    const ground = MeshBuilder.CreateGround("map_ground", { width: 50, height: 80 }, scene);
-    ground.isPickable = true;
-    const groundMat = new StandardMaterial("map_ground_mat", scene);
-    groundMat.diffuseColor = new Color3(210 / 255, 210 / 255, 210 / 255);
-    ground.material = groundMat;
+    // Load Iraq 3D model
+    const iraqModel = await ImportMeshAsync("./assets/models/iraq.glb", scene);
+
+    // Create parent transform node for the model
+    const modelParent = new TransformNode("iraq_parent", scene);
+    modelParent.rotation.y = Math.PI;
+    modelParent.scaling = new Vector3(1.25, 1.25, 1.25);
+
+    // Center and scale the model
+    const rootMesh = iraqModel.meshes[0];
+    if (rootMesh) {
+        // Calculate bounding box to find center
+        const boundingInfo = rootMesh.getHierarchyBoundingVectors();
+        const center = boundingInfo.max.add(boundingInfo.min).scale(0.5);
+
+        // Move model so its center is at origin
+        rootMesh.position.subtractInPlace(center);
+    }
+
+    // Parent all meshes to the transform node
+    iraqModel.meshes.forEach((mesh) => {
+        if (mesh.parent === null) {
+            mesh.parent = modelParent;
+        }
+        mesh.isPickable = true;
+    });
 
     // const surface = MeshBuilder.CreateGround("map_surface", { width: 300, height: 300 }, scene);
     // surface.position.y = -0.25;
@@ -746,48 +770,48 @@ const createMapScene = () => {
         {
             id: "1",
             name: "Hosh Al-Bay'ah Collection",
-            position: new Vector3(-20, 1, 25),
+            position: new Vector3(-15, 1, 15),
             description:
                 "A historic collection showcasing traditional architecture and cultural heritage of the region.",
         },
         {
             id: "2",
             name: "Old City of Mosul",
-            position: new Vector3(-15, 1, 15),
+            position: new Vector3(-12.5, 1, 11),
             description:
                 "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
         },
         {
             id: "3",
             name: "Erbil Citadel",
-            position: new Vector3(-5, 1, 10),
+            position: new Vector3(-7.5, 1, 12.5),
             description:
                 "One of the oldest continuously inhabited settlements in the world, a UNESCO World Heritage site.",
         },
         {
             id: "4",
             name: "Baghdad Museum",
-            position: new Vector3(1, 1, 1),
+            position: new Vector3(-1.5, 1, -1),
             description:
                 "Home to priceless artifacts from Mesopotamian civilizations and Iraq's rich cultural history.",
         },
         {
             id: "5",
             name: "Uruk City",
-            position: new Vector3(2.5, 1, -12.5),
+            position: new Vector3(0, 1, -15),
             description:
                 "Ancient Sumerian city-state, birthplace of writing and one of the world's first great cities.",
         },
         {
             id: "6",
             name: "Al-Chibayish Marshlands",
-            position: new Vector3(15, 1, -25),
+            position: new Vector3(15, 1, -19),
             description: "Unique wetland ecosystem, home to the Marsh Arabs and diverse wildlife in southern Iraq.",
         },
     ];
 
     sites.forEach((site) => {
-        const box = MeshBuilder.CreateBox(`site-${site.id}`, { size: 4 }, scene);
+        const box = MeshBuilder.CreateBox(`site-${site.id}`, { size: 2 }, scene);
         box.position.copyFrom(site.position);
         box.isPickable = true;
 
@@ -842,8 +866,12 @@ const createMapScene = () => {
                 startExperienceBtn.style.display = "block";
                 descriptionBox.style.display = "block";
             });
-        } else if (pointerInfo.pickInfo?.hit && pointerInfo.pickInfo.pickedMesh?.name === "map_ground") {
-            // Clicking the ground refocuses to center
+        } else if (
+            pointerInfo.pickInfo?.hit &&
+            pointerInfo.pickInfo.pickedMesh &&
+            !pointerInfo.pickInfo.pickedMesh.name.startsWith("site-")
+        ) {
+            // Clicking the ground/model refocuses to center
             currentFocusedSite = null;
             startExperienceBtn.style.display = "none";
             descriptionBox.style.display = "none";
@@ -914,10 +942,9 @@ const startGame = async (nickname: string) => {
     activeScene?.dispose();
     activeScene = await createScene(nickname);
 
-    // Inspector toggle (dev only)
     let inspectorActive = false;
     window.addEventListener("keydown", async (e) => {
-        if (e.key.toLowerCase() === "f" && import.meta.env.DEV) {
+        if (e.key.toLowerCase() === "f") {
             inspectorActive = !inspectorActive;
             const { Inspector } = await import("@babylonjs/inspector");
             if (inspectorActive) {
@@ -929,7 +956,8 @@ const startGame = async (nickname: string) => {
     });
 };
 
-activeScene = createMapScene();
+registerBuiltInLoaders();
+activeScene = await createMapScene();
 
 engine.runRenderLoop(function () {
     activeScene?.render();

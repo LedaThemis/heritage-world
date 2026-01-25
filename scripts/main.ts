@@ -22,13 +22,23 @@ import {
     ImportMeshAsync,
     TransformNode,
     SSAO2RenderingPipeline,
+    Quaternion,
 } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
 import { Client, getStateCallbacks, Room } from "colyseus.js";
 import { registerBuiltInLoaders } from "@babylonjs/loaders/dynamic";
 
 interface PlayerRoomType {
-    players: { x: number; y: number; z: number; name?: string }[];
+    players: {
+        x: number;
+        y: number;
+        z: number;
+        rotX?: number;
+        rotY?: number;
+        rotZ?: number;
+        rotW?: number;
+        name?: string;
+    }[];
 }
 
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement | null;
@@ -54,8 +64,9 @@ const generateFriendlyName = (): string => {
 const engine = new Engine(canvas, true);
 let activeScene: Scene | null = null;
 let gameStarted = false;
-const playerEntities: { [key: string]: Mesh } = {};
+const playerEntities: { [key: string]: Mesh | TransformNode } = {};
 const playerNextPosition: { [key: string]: Vector3 } = {};
+const playerNextRotation: { [key: string]: Quaternion } = {};
 const playerLabels: { [key: string]: Mesh } = {};
 
 const setupScene = function (engine: Engine) {
@@ -102,7 +113,7 @@ const createNameLabel = (name: string, scene: Scene) => {
     const plane = MeshBuilder.CreatePlane("nameplate", { size: 2 }, scene);
     plane.billboardMode = Mesh.BILLBOARDMODE_ALL;
     plane.isPickable = false;
-    plane.position.y = 1.6;
+    plane.position.y = 2.5;
     plane.scaling.y = -1; // flip so text is upright
 
     const texture = new DynamicTexture("nameplate-texture", { width: 256, height: 128 }, scene, false);
@@ -183,6 +194,7 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
     let verticalVelocity = 0;
     let isGrounded = false;
     let lastPositionSend = 0;
+    let lastSentRotation = Quaternion.FromEulerAngles(0, 0, 0);
     const positionSendIntervalMs = 100;
 
     window.addEventListener("keydown", (e) => {
@@ -412,19 +424,32 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
 
         playerMesh.moveWithCollisions(movement);
 
-        // Debounced position updates to server
+        // Debounced position and rotation updates to server
         const now = performance.now();
+        const currentQuat = Quaternion.FromEulerAngles(camera.rotation.x, camera.rotation.y, camera.rotation.z);
+        const rotationChanged =
+            Math.abs(currentQuat.x - lastSentRotation.x) > 0.01 ||
+            Math.abs(currentQuat.y - lastSentRotation.y) > 0.01 ||
+            Math.abs(currentQuat.z - lastSentRotation.z) > 0.01 ||
+            Math.abs(currentQuat.w - lastSentRotation.w) > 0.01;
+
         if (
-            (movement.x !== 0 || movement.y !== 0 || movement.z !== 0) &&
+            (movement.x !== 0 || movement.y !== 0 || movement.z !== 0 || rotationChanged) &&
             now - lastPositionSend >= positionSendIntervalMs
         ) {
             lastPositionSend = now;
-            if (room)
+            lastSentRotation = currentQuat.clone();
+            if (room) {
                 room.send("updatePosition", {
                     x: playerMesh.position.x,
-                    y: playerMesh.position.y + 1, // TODO: Do we need to add one here? since the height of player mesh is 2 but remote player is 1
+                    y: playerMesh.position.y + 1,
                     z: playerMesh.position.z,
+                    rotX: currentQuat.x,
+                    rotY: currentQuat.y,
+                    rotZ: currentQuat.z,
+                    rotW: currentQuat.w,
                 });
+            }
         }
     });
 
@@ -485,28 +510,40 @@ const createScene = async function (nickname: string) {
             updateStatus("OFFLINE");
         });
 
-        $(room.state).players.onAdd((player, sessionId) => {
+        $(room.state).players.onAdd(async (player, sessionId) => {
             const isCurrentPlayer = sessionId === room?.sessionId;
 
             // create player Sphere
             if (isCurrentPlayer) {
                 playerMesh.position.set(player.x, player.y, player.z);
             } else {
-                const remotePlayerMesh = MeshBuilder.CreateSphere(
-                    `player-${sessionId}`,
-                    {
-                        segments: 8,
-                        diameter: 2,
-                    },
-                    scene
-                );
+                // Load eva.gltf model for remote players
+                const modelData = await ImportMeshAsync("./assets/models/eva.glb", scene);
+                const rootMesh = modelData.meshes[0];
 
-                remotePlayerMesh.position.set(player.x, player.y, player.z);
-                playerEntities[sessionId] = remotePlayerMesh;
-                playerNextPosition[sessionId] = remotePlayerMesh.position.clone();
+                modelData.animationGroups.forEach((animationGroup) => {
+                    animationGroup.play(false);
+                });
+
+                // Create parent container for positioning
+                const remotePlayerContainer = new TransformNode(`player-${sessionId}`, scene);
+                remotePlayerContainer.position.set(player.x, player.y, player.z);
+                remotePlayerContainer.scaling = new Vector3(1, 1, 1);
+
+                // Parent all meshes to the container
+                modelData.meshes.forEach((mesh) => {
+                    if (mesh.parent === null) {
+                        mesh.parent = remotePlayerContainer;
+                    }
+                    mesh.isPickable = false;
+                });
+
+                playerEntities[sessionId] = remotePlayerContainer;
+                playerNextPosition[sessionId] = remotePlayerContainer.position.clone();
+                playerNextRotation[sessionId] = remotePlayerContainer.rotationQuaternion || Quaternion.Identity();
 
                 const label = createNameLabel(player.name ?? "Player", scene);
-                label.parent = remotePlayerMesh;
+                label.parent = remotePlayerContainer;
                 playerLabels[sessionId] = label;
             }
 
@@ -514,6 +551,19 @@ const createScene = async function (nickname: string) {
                 if (isCurrentPlayer) {
                 } else {
                     playerNextPosition[sessionId].set(player.x, player.y, player.z);
+                    if (
+                        player.rotX !== undefined &&
+                        player.rotY !== undefined &&
+                        player.rotZ !== undefined &&
+                        player.rotW !== undefined
+                    ) {
+                        playerNextRotation[sessionId] = new Quaternion(
+                            player.rotX,
+                            player.rotY,
+                            player.rotZ,
+                            player.rotW
+                        );
+                    }
                     if (player.name) {
                         updateNameLabel(playerLabels[sessionId], player.name);
                     }
@@ -524,6 +574,7 @@ const createScene = async function (nickname: string) {
         $(room.state).players.onRemove(function (player, sessionId) {
             playerEntities[sessionId].dispose();
             delete playerEntities[sessionId];
+            delete playerNextRotation[sessionId];
             playerLabels[sessionId]?.dispose();
             delete playerLabels[sessionId];
         });
@@ -557,7 +608,15 @@ const createScene = async function (nickname: string) {
         for (const sessionId in playerEntities) {
             const entity = playerEntities[sessionId];
             const targetPosition = playerNextPosition[sessionId];
+            const targetRotation = playerNextRotation[sessionId];
             entity.position = Vector3.Lerp(entity.position, targetPosition, 0.05);
+            if (targetRotation) {
+                entity.rotationQuaternion = Quaternion.Slerp(
+                    entity.rotationQuaternion ?? Quaternion.Identity(),
+                    targetRotation,
+                    0.05
+                );
+            }
         }
     });
 

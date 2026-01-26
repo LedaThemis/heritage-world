@@ -701,6 +701,31 @@ const createMapScene = async () => {
     headerTip.style.pointerEvents = "none";
     document.body.appendChild(headerTip);
 
+    // Create side panel
+    const sidePanel = document.createElement("div");
+    sidePanel.style.position = "fixed";
+    sidePanel.style.right = "0px";
+    sidePanel.style.top = "0px";
+    sidePanel.style.margin = "20px";
+    sidePanel.style.width = "350px";
+    sidePanel.style.maxHeight = "calc(100vh - 40px - 40px)";
+    sidePanel.style.overflowY = "auto";
+    sidePanel.style.background = "rgba(0, 0, 0, 0.85)";
+    sidePanel.style.borderRadius = "12px";
+    sidePanel.style.padding = "20px";
+    sidePanel.style.zIndex = "100";
+    sidePanel.style.color = "white";
+    sidePanel.style.fontFamily = "sans-serif";
+    document.body.appendChild(sidePanel);
+
+    // Panel header
+    const panelHeader = document.createElement("h2");
+    panelHeader.textContent = "Heritage Sites";
+    panelHeader.style.margin = "0 0 16px 0";
+    panelHeader.style.fontSize = "24px";
+    panelHeader.style.fontWeight = "bold";
+    sidePanel.appendChild(panelHeader);
+
     // Create description box (hidden by default)
     const descriptionBox = document.createElement("div");
     descriptionBox.style.position = "fixed";
@@ -828,6 +853,7 @@ const createMapScene = async () => {
             headerTip.remove();
             descriptionBox.remove();
             startExperienceBtn.remove();
+            sidePanel.remove();
             // Show main menu for nickname entry
             createMainMenu(startGame);
         }
@@ -898,6 +924,7 @@ const createMapScene = async () => {
             position: new Vector3(-15, 1, 15),
             description:
                 "A historic collection showcasing traditional architecture and cultural heritage of the region.",
+            thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
             modelPath: null,
             worldModelPath: "./assets/models/al-tahira-world.glb",
         },
@@ -907,6 +934,7 @@ const createMapScene = async () => {
             position: new Vector3(-12, 1, 11),
             description:
                 "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
+            thumbnailPath: "./assets/sites/mosul.webp",
             modelPath: null,
             worldModelPath: null,
         },
@@ -916,6 +944,7 @@ const createMapScene = async () => {
             position: new Vector3(-7.5, 1, 12.5),
             description:
                 "One of the oldest continuously inhabited settlements in the world, a UNESCO World Heritage site.",
+            thumbnailPath: "./assets/sites/erbil.png",
             modelPath: null,
             worldModelPath: null,
         },
@@ -925,6 +954,7 @@ const createMapScene = async () => {
             position: new Vector3(-1.5, 1, -1),
             description:
                 "Home to priceless artifacts from Mesopotamian civilizations and Iraq's rich cultural history.",
+            thumbnailPath: "./assets/sites/baghdad-museum.webp",
             modelPath: null,
             worldModelPath: null,
         },
@@ -934,6 +964,7 @@ const createMapScene = async () => {
             position: new Vector3(0, 1, -15),
             description:
                 "Ancient Sumerian city-state, birthplace of writing and one of the world's first great cities.",
+            thumbnailPath: "./assets/sites/uruk.jpg",
             modelPath: null,
             worldModelPath: null,
         },
@@ -942,10 +973,92 @@ const createMapScene = async () => {
             name: "Al-Chibayish Marshlands",
             position: new Vector3(15, 1, -19),
             description: "Unique wetland ecosystem, home to the Marsh Arabs and diverse wildlife in southern Iraq.",
+            thumbnailPath: "./assets/sites/marshlands.png",
             modelPath: "./assets/models/mudhif.glb",
             worldModelPath: null,
         },
     ];
+
+    // Populate side panel with sites
+    sites.forEach((site) => {
+        const siteCard = document.createElement("div");
+        siteCard.style.background = "rgba(255, 255, 255, 0.1)";
+        siteCard.style.borderRadius = "8px";
+        siteCard.style.padding = "12px";
+        siteCard.style.marginBottom = "12px";
+        siteCard.style.cursor = "pointer";
+        siteCard.style.transition = "all 0.2s ease";
+        siteCard.style.border = "2px solid transparent";
+
+        siteCard.addEventListener("mouseenter", () => {
+            siteCard.style.background = "rgba(255, 255, 255, 0.2)";
+            siteCard.style.borderColor = "rgba(59, 130, 246, 0.5)";
+        });
+
+        siteCard.addEventListener("mouseleave", () => {
+            siteCard.style.background = "rgba(255, 255, 255, 0.1)";
+            siteCard.style.borderColor = "transparent";
+        });
+
+        siteCard.addEventListener("click", () => {
+            currentFocusedSite = site.id;
+            startExperienceBtn.style.display = "none";
+            descriptionBox.style.display = "none";
+
+            const targetPosition = site.position.clone();
+            targetPosition.y = 0;
+
+            const targetRadius = 20;
+            const animationDuration = 2 * 60;
+
+            const dx = targetPosition.x - camera.target.x;
+            const dz = targetPosition.z - camera.target.z;
+            const targetAlpha = Math.atan2(dx, dz);
+
+            const currentAlpha = camera.alpha;
+            let deltaAlpha = targetAlpha - currentAlpha;
+
+            while (deltaAlpha > Math.PI) deltaAlpha -= 2 * Math.PI;
+            while (deltaAlpha < -Math.PI) deltaAlpha += 2 * Math.PI;
+
+            const finalAlpha = currentAlpha + deltaAlpha;
+
+            animateCameraFocus(targetPosition, targetRadius, finalAlpha, animationDuration, () => {
+                startExperienceBtn.style.display = "block";
+                descriptionBox.style.display = "block";
+                descriptionBox.textContent = site.description;
+            });
+        });
+
+        // Thumbnail image
+        const thumbnail = document.createElement("img");
+        thumbnail.src = site.thumbnailPath;
+        thumbnail.style.width = "100%";
+        thumbnail.style.height = "120px";
+        thumbnail.style.objectFit = "contain";
+        thumbnail.style.borderRadius = "6px";
+        thumbnail.style.marginBottom = "8px";
+        siteCard.appendChild(thumbnail);
+
+        // Site name
+        const siteName = document.createElement("h3");
+        siteName.textContent = site.name;
+        siteName.style.margin = "0 0 6px 0";
+        siteName.style.fontSize = "16px";
+        siteName.style.fontWeight = "600";
+        siteCard.appendChild(siteName);
+
+        // Site description
+        const siteDesc = document.createElement("p");
+        siteDesc.textContent = site.description;
+        siteDesc.style.margin = "0";
+        siteDesc.style.fontSize = "13px";
+        siteDesc.style.lineHeight = "1.4";
+        siteDesc.style.color = "rgba(255, 255, 255, 0.8)";
+        siteCard.appendChild(siteDesc);
+
+        sidePanel.appendChild(siteCard);
+    });
 
     sites.forEach(async (site) => {
         // Create invisible clickable box for all sites (for detecting clicks)

@@ -23,6 +23,7 @@ import {
     TransformNode,
     SSAO2RenderingPipeline,
     Quaternion,
+    AbstractMesh,
 } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
 import { Client, getStateCallbacks, Room } from "colyseus.js";
@@ -64,6 +65,7 @@ const generateFriendlyName = (): string => {
 const engine = new Engine(canvas, true);
 let activeScene: Scene | null = null;
 let gameStarted = false;
+let selectedSite: { worldModelPath: string | null } | null = null;
 const playerEntities: { [key: string]: Mesh | TransformNode } = {};
 const playerNextPosition: { [key: string]: Vector3 } = {};
 const playerNextRotation: { [key: string]: Quaternion } = {};
@@ -456,7 +458,7 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
     return { camera, playerMesh };
 };
 
-const createScene = async function (nickname: string) {
+const createScene = async function (nickname: string, worldModelPath?: string | null) {
     const scene = setupScene(engine);
 
     const gravityVector = new Vector3(0, -9.81, 0);
@@ -583,25 +585,58 @@ const createScene = async function (nickname: string) {
         updateStatus("OFFLINE");
     }
 
-    const { playerMesh } = setupCamera(canvas, scene, room!);
+    const { camera, playerMesh } = setupCamera(canvas, scene, room!);
     setupLight(scene);
     setupSkybox(scene);
 
-    const sphere = MeshBuilder.CreateSphere("sphere", { diameter: 3, segments: 32 }, scene);
-    sphere.position = new Vector3(0, 2, 10);
-    sphere.checkCollisions = true;
+    // Enable ambient occlusion
+    const ssao = new SSAO2RenderingPipeline("ssao", scene, {
+        ssaoRatio: 0.5,
+        blurRatio: 1,
+    });
+    ssao.radius = 2;
+    ssao.totalStrength = 1.3;
+    ssao.expensiveBlur = true;
+    ssao.samples = 16;
+    ssao.maxZ = 250;
+    scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("ssao", camera);
 
-    const ground = MeshBuilder.CreateGround("ground", { width: GND_WIDTH, height: GND_HEIGHT }, scene);
-    ground.checkCollisions = true;
+    let ground: AbstractMesh | TransformNode;
+    if (worldModelPath) {
+        // Load custom world model
+        const worldModel = await ImportMeshAsync(worldModelPath, scene);
+        const rootMesh = worldModel.meshes[0];
 
-    const sphereAggregate = new PhysicsAggregate(
-        sphere,
-        PhysicsShapeType.SPHERE,
-        { mass: 1, restitution: 0.75 },
-        scene
-    );
+        // Create parent transform node for the world model
+        const worldParent = new TransformNode("world_parent", scene);
+        worldParent.rotation.y = 0;
+        worldParent.scaling = new Vector3(2, 2, 2);
 
-    const groundAggregate = new PhysicsAggregate(ground, PhysicsShapeType.BOX, { mass: 0 }, scene);
+        if (rootMesh) {
+            // Calculate bounding box to find center
+            const boundingInfo = rootMesh.getHierarchyBoundingVectors();
+            const center = boundingInfo.max.add(boundingInfo.min).scale(0.5);
+
+            // Move model so its center is at origin
+            rootMesh.position.subtractInPlace(center);
+        }
+
+        // Parent all meshes to the transform node
+        worldModel.meshes.forEach((mesh) => {
+            if (mesh.parent === null) {
+                mesh.parent = worldParent;
+            }
+            mesh.checkCollisions = true;
+        });
+
+        ground = worldParent;
+        // ground.checkCollisions = true;
+    } else {
+        // Use default ground plane
+        const defaultWorld = MeshBuilder.CreateGround("ground", { width: GND_WIDTH, height: GND_HEIGHT }, scene);
+        defaultWorld.checkCollisions = true;
+        ground = defaultWorld;
+    }
 
     // Remote Movement Loop
     scene.registerBeforeRender(() => {
@@ -785,6 +820,10 @@ const createMapScene = async () => {
 
     startExperienceBtn.addEventListener("click", () => {
         if (currentFocusedSite) {
+            // Store the selected site
+            const site = sites.find((s) => s.id === currentFocusedSite);
+            selectedSite = site || null;
+
             // Clean up map scene UI
             headerTip.remove();
             descriptionBox.remove();
@@ -860,6 +899,7 @@ const createMapScene = async () => {
             description:
                 "A historic collection showcasing traditional architecture and cultural heritage of the region.",
             modelPath: null,
+            worldModelPath: "./assets/models/al-tahira-world.glb",
         },
         {
             id: "2",
@@ -868,6 +908,7 @@ const createMapScene = async () => {
             description:
                 "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
             modelPath: null,
+            worldModelPath: null,
         },
         {
             id: "3",
@@ -876,6 +917,7 @@ const createMapScene = async () => {
             description:
                 "One of the oldest continuously inhabited settlements in the world, a UNESCO World Heritage site.",
             modelPath: null,
+            worldModelPath: null,
         },
         {
             id: "4",
@@ -884,6 +926,7 @@ const createMapScene = async () => {
             description:
                 "Home to priceless artifacts from Mesopotamian civilizations and Iraq's rich cultural history.",
             modelPath: null,
+            worldModelPath: null,
         },
         {
             id: "5",
@@ -892,6 +935,7 @@ const createMapScene = async () => {
             description:
                 "Ancient Sumerian city-state, birthplace of writing and one of the world's first great cities.",
             modelPath: null,
+            worldModelPath: null,
         },
         {
             id: "6",
@@ -899,6 +943,7 @@ const createMapScene = async () => {
             position: new Vector3(15, 1, -19),
             description: "Unique wetland ecosystem, home to the Marsh Arabs and diverse wildlife in southern Iraq.",
             modelPath: "./assets/models/mudhif.glb",
+            worldModelPath: null,
         },
     ];
 
@@ -1065,7 +1110,7 @@ const createMainMenu = (onStart: (nickname: string) => void) => {
 
 const startGame = async (nickname: string) => {
     activeScene?.dispose();
-    activeScene = await createScene(nickname);
+    activeScene = await createScene(nickname, selectedSite?.worldModelPath);
 };
 
 registerBuiltInLoaders();

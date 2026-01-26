@@ -819,6 +819,28 @@ const createMapScene = async () => {
     sidePanel.style.zIndex = "100";
     sidePanel.style.color = "white";
     sidePanel.style.fontFamily = "sans-serif";
+
+    // Custom scrollbar styling
+    const style = document.createElement("style");
+    style.textContent = `
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+    `;
+    document.head.appendChild(style);
+    sidePanel.classList.add("custom-scrollbar");
+
     document.body.appendChild(sidePanel);
 
     // Panel header

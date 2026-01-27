@@ -491,13 +491,23 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
     statusHeader.style.borderRadius = "6px";
     statusHeader.style.zIndex = "100";
     statusHeader.style.fontFamily = "monospace";
+    statusHeader.style.display = "flex";
+    statusHeader.style.alignItems = "center";
+    statusHeader.style.gap = "12px";
     document.body.appendChild(statusHeader);
 
-    const updateStatus = (status: "ONLINE" | "OFFLINE") => {
-        statusHeader.textContent = status;
+    let currentPlayerCount = 0;
+
+    const updateStatus = (status: "ONLINE" | "OFFLINE", playerCount?: number) => {
+        if (playerCount !== undefined) {
+            currentPlayerCount = playerCount;
+        }
+
         if (status === "ONLINE") {
+            statusHeader.innerHTML = `<span style="opacity: 0.8; font-size: 12px;">👤 ${currentPlayerCount}</span> | ONLINE`;
             statusHeader.style.background = "rgba(0, 200, 0, 0.7)";
         } else {
+            statusHeader.textContent = status;
             statusHeader.style.background = "rgba(200, 0, 0, 0.7)";
         }
     };
@@ -509,17 +519,38 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
         room.send("setName", { name: nickname });
         const $ = getStateCallbacks<PlayerRoomType>(room);
 
+        // Request player count and setup periodic updates
+        const requestPlayerCount = () => {
+            room?.send("getPlayerCount");
+        };
+
+        room.onMessage("playerCount", (message: { count: number }) => {
+            updateStatus("ONLINE", message.count);
+        });
+
+        // Initial player count request
+        requestPlayerCount();
+
+        // Update player count every 5 seconds
+        const playerCountInterval = setInterval(() => {
+            if (room?.connection.isOpen) {
+                requestPlayerCount();
+            }
+        }, 5000);
+
         // Update status to online when connected
         updateStatus("ONLINE");
 
         // Listen for disconnect events
         room.onLeave((code) => {
             console.log("Disconnected from server:", code);
+            clearInterval(playerCountInterval);
             updateStatus("OFFLINE");
         });
 
         room.onError((code, message) => {
             console.error("Room error:", code, message);
+            if (playerCountInterval) clearInterval(playerCountInterval);
             updateStatus("OFFLINE");
         });
 

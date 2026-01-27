@@ -276,8 +276,18 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
             nameInput.style.marginBottom = "12px";
             nameSection.appendChild(nameInput);
 
+            // Create style tag for button hover effect
+            const nameButtonHoverStyle = document.createElement("style");
+            nameButtonHoverStyle.textContent = `
+                .name-save-btn-hover:hover {
+                    background: #2563eb !important;
+                }
+            `;
+            document.head.appendChild(nameButtonHoverStyle);
+
             const updateNameBtn = document.createElement("button");
             updateNameBtn.textContent = "Save";
+            updateNameBtn.className = "name-save-btn-hover";
             updateNameBtn.style.width = "100%";
             updateNameBtn.style.padding = "12px 24px";
             updateNameBtn.style.border = "none";
@@ -288,12 +298,6 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
             updateNameBtn.style.fontWeight = "bold";
             updateNameBtn.style.fontSize = "16px";
             updateNameBtn.style.transition = "background 0.2s ease";
-            updateNameBtn.addEventListener("mouseenter", () => {
-                updateNameBtn.style.background = "#2563eb";
-            });
-            updateNameBtn.addEventListener("mouseleave", () => {
-                updateNameBtn.style.background = "#3b82f6";
-            });
             updateNameBtn.addEventListener("click", () => {
                 const newName = nameInput.value.trim();
                 if (newName && room) {
@@ -305,11 +309,13 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
                     updateNameBtn.textContent = "✓";
                     updateNameBtn.style.background = "#10b981";
                     updateNameBtn.disabled = true;
+                    updateNameBtn.className = ""; // Remove hover class
 
                     setTimeout(() => {
                         updateNameBtn.textContent = originalText;
                         updateNameBtn.style.background = originalBackground;
                         updateNameBtn.disabled = false;
+                        updateNameBtn.className = "name-save-btn-hover"; // Re-add hover class
                     }, 2000);
                 }
             });

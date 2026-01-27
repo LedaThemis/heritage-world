@@ -1,3 +1,10 @@
+// TODO: Side panel: Implement "see more" instead of scrollbar
+// TODO: Make side panel a grid
+// TODO: Remove subtitle when entering virtual world
+// TODO: Menu button (works with ESC)
+// TODO: Players count next to "ONLINE" with person head icon
+// TODO: Change "Start Experience" to be inside box on floating description
+
 import {
     Engine,
     Scene,
@@ -524,7 +531,7 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
                 const rootMesh = modelData.meshes[0];
 
                 modelData.animationGroups.forEach((animationGroup) => {
-                    animationGroup.play(false);
+                    animationGroup.stop();
                 });
 
                 // Create parent container for positioning
@@ -684,14 +691,21 @@ const createMapScene = async () => {
     ssao.maxZ = 250;
     scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("ssao", camera);
 
+    // Create container for left-side UI elements
+    const leftContainer = document.createElement("div");
+    leftContainer.style.position = "fixed";
+    leftContainer.style.top = "20px";
+    leftContainer.style.left = "20px";
+    leftContainer.style.zIndex = "100";
+    leftContainer.style.display = "flex";
+    leftContainer.style.flexDirection = "column";
+    leftContainer.style.gap = "20px";
+    leftContainer.style.maxWidth = "390px";
+    document.body.appendChild(leftContainer);
+
     // Create website header in top left
     const websiteHeader = document.createElement("div");
-    websiteHeader.style.position = "fixed";
-    websiteHeader.style.top = "0px";
-    websiteHeader.style.left = "0px";
     websiteHeader.style.padding = "20px";
-    websiteHeader.style.margin = "20px";
-    websiteHeader.style.zIndex = "100";
     websiteHeader.style.background = "rgba(0, 0, 0, 0.85)";
     websiteHeader.style.borderRadius = "8px";
     websiteHeader.style.color = "white";
@@ -715,24 +729,19 @@ const createMapScene = async () => {
     subtitle.style.letterSpacing = "0.3px";
     websiteHeader.appendChild(subtitle);
 
-    document.body.appendChild(websiteHeader);
+    leftContainer.appendChild(websiteHeader);
 
     // Create info panel (left side)
     const infoPanel = document.createElement("div");
-    infoPanel.style.position = "fixed";
-    infoPanel.style.left = "0px";
-    infoPanel.style.bottom = "0px";
-    infoPanel.style.margin = "20px";
     infoPanel.style.width = "350px";
     infoPanel.style.maxHeight = "calc(100vh - 200px)";
     infoPanel.style.overflowY = "auto";
     infoPanel.style.background = "rgba(0, 0, 0, 0.85)";
     infoPanel.style.borderRadius = "12px";
     infoPanel.style.padding = "20px";
-    infoPanel.style.zIndex = "100";
     infoPanel.style.color = "white";
     infoPanel.style.fontFamily = "sans-serif";
-    document.body.appendChild(infoPanel);
+    leftContainer.appendChild(infoPanel);
 
     // Info panel header
     const infoPanelHeader = document.createElement("h2");
@@ -752,25 +761,8 @@ const createMapScene = async () => {
     infoContent.style.color = "rgba(255, 255, 255, 0.9)";
     infoPanel.appendChild(infoContent);
 
-    // Credits section
-    const creditsHeader = document.createElement("h3");
-    creditsHeader.textContent = "Our Team";
-    creditsHeader.style.margin = "0 0 12px 0";
-    creditsHeader.style.fontSize = "18px";
-    creditsHeader.style.fontWeight = "600";
-    infoPanel.appendChild(creditsHeader);
-
-    const creditsText = document.createElement("p");
-    creditsText.textContent =
-        "This project was created by a dedicated team passionate about preserving and sharing Iraq's cultural heritage through innovative digital experiences.";
-    creditsText.style.margin = "0 0 12px 0";
-    creditsText.style.fontSize = "13px";
-    creditsText.style.lineHeight = "1.6";
-    creditsText.style.color = "rgba(255, 255, 255, 0.8)";
-    infoPanel.appendChild(creditsText);
-
     const creditsLink = document.createElement("a");
-    creditsLink.textContent = "View full credits →";
+    creditsLink.textContent = "Learn more →";
     creditsLink.href = "/credits";
     creditsLink.style.color = "#60a5fa";
     creditsLink.style.fontSize = "13px";
@@ -806,17 +798,12 @@ const createMapScene = async () => {
 
     // Create side panel
     const sidePanel = document.createElement("div");
-    sidePanel.style.position = "fixed";
-    sidePanel.style.right = "0px";
-    sidePanel.style.top = "0px";
-    sidePanel.style.margin = "20px";
     sidePanel.style.width = "350px";
-    sidePanel.style.maxHeight = "calc(100vh - 40px - 40px)";
+    sidePanel.style.maxHeight = "calc(60vh - 40px - 40px)";
     sidePanel.style.overflowY = "auto";
     sidePanel.style.background = "rgba(0, 0, 0, 0.85)";
     sidePanel.style.borderRadius = "12px";
     sidePanel.style.padding = "20px";
-    sidePanel.style.zIndex = "100";
     sidePanel.style.color = "white";
     sidePanel.style.fontFamily = "sans-serif";
 
@@ -841,11 +828,13 @@ const createMapScene = async () => {
     document.head.appendChild(style);
     sidePanel.classList.add("custom-scrollbar");
 
-    document.body.appendChild(sidePanel);
+    leftContainer.appendChild(sidePanel);
 
     // Panel header
     const panelHeader = document.createElement("h2");
     panelHeader.textContent = "Heritage Sites";
+    panelHeader.style.position = "relative";
+    panelHeader.style.top = "0";
     panelHeader.style.margin = "0 0 16px 0";
     panelHeader.style.fontSize = "24px";
     panelHeader.style.fontWeight = "bold";
@@ -854,10 +843,10 @@ const createMapScene = async () => {
     // Create description box (hidden by default)
     const descriptionBox = document.createElement("div");
     descriptionBox.style.position = "fixed";
-    descriptionBox.style.bottom = "110px";
-    descriptionBox.style.left = "50%";
-    descriptionBox.style.transform = "translateX(-50%)";
+    descriptionBox.style.bottom = "0px";
+    descriptionBox.style.right = "0";
     descriptionBox.style.padding = "16px 24px";
+    descriptionBox.style.margin = "20px";
     descriptionBox.style.maxWidth = "500px";
     descriptionBox.style.fontSize = "20px";
     descriptionBox.style.lineHeight = "1.5";
@@ -873,9 +862,9 @@ const createMapScene = async () => {
     const startExperienceBtn = document.createElement("button");
     startExperienceBtn.textContent = "Start Experience";
     startExperienceBtn.style.position = "fixed";
-    startExperienceBtn.style.bottom = "40px";
-    startExperienceBtn.style.left = "50%";
-    startExperienceBtn.style.transform = "translateX(-50%)";
+    startExperienceBtn.style.bottom = "0px";
+    startExperienceBtn.style.right = "0px";
+    startExperienceBtn.style.margin = "20px";
     startExperienceBtn.style.padding = "12px 24px";
     startExperienceBtn.style.fontSize = "24px";
     startExperienceBtn.style.fontWeight = "bold";
@@ -975,7 +964,7 @@ const createMapScene = async () => {
             selectedSite = site || null;
 
             // Clean up map scene UI
-            websiteHeader.remove();
+            // websiteHeader.remove();
             infoPanel.remove();
             headerTip.remove();
             descriptionBox.remove();

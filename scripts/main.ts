@@ -1206,6 +1206,7 @@ const createMapScene = async () => {
             const siteContainer = new TransformNode(`site-model-${site.id}`, scene);
             siteContainer.position.copyFrom(site.position);
             siteContainer.scaling = new Vector3(0.075, 0.075, 0.075);
+            siteContainer.position.subtractInPlace(new Vector3(0, 0.25, 0));
 
             // Parent all meshes to the container
             modelData.meshes.forEach((mesh) => {

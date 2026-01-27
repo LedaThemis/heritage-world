@@ -31,6 +31,10 @@ import {
     SSAO2RenderingPipeline,
     Quaternion,
     AbstractMesh,
+    ParticleSystem,
+    Texture,
+    CylinderParticleEmitter,
+    GPUParticleSystem,
 } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
 import { Client, getStateCallbacks, Room } from "colyseus.js";
@@ -1013,26 +1017,47 @@ const createMapScene = async () => {
         mesh.isPickable = true;
     });
 
-    // Create fog wall cylinder around the perimeter
-    const fogWall = MeshBuilder.CreateCylinder(
-        "fog_wall",
-        {
-            height: 120,
-            diameter: 180,
-            tessellation: 64,
-        },
-        scene
-    );
-    fogWall.position.y = 15;
-    fogWall.isPickable = false;
-    fogWall.visibility = 0;
+    // Create cylindrical fog wall particle system around the perimeter
+    const fogWallParticleSystem = new GPUParticleSystem("fogWallParticles", { capacity: 5000 }, scene);
 
-    const fogMaterial = new StandardMaterial("fog_mat", scene);
-    fogMaterial.diffuseColor = new Color3(0.9, 0.9, 0.9);
-    fogMaterial.emissiveColor = new Color3(0.85, 0.85, 0.85);
-    fogMaterial.alpha = 0.85;
-    fogMaterial.backFaceCulling = false;
-    fogWall.material = fogMaterial;
+    // Use cylinder particle emitter type for cylindrical fog wall
+    fogWallParticleSystem.particleEmitterType = new CylinderParticleEmitter(30, 30, 2.5);
+
+    // Use a simple cloud/smoke texture
+    const fogWallTexture = new Texture("./assets/textures/smoke.png", scene);
+    fogWallParticleSystem.particleTexture = fogWallTexture;
+
+    // Color configuration - white/gray fog with low opacity
+    fogWallParticleSystem.color1 = new Color4(0.9, 0.9, 0.9, 0.15);
+    fogWallParticleSystem.color2 = new Color4(0.95, 0.95, 0.95, 0.2);
+    fogWallParticleSystem.colorDead = new Color4(0.85, 0.85, 0.85, 0.1);
+
+    // Size configuration - larger particles for wall effect
+    fogWallParticleSystem.minSize = 5;
+    fogWallParticleSystem.maxSize = 8;
+
+    // Lifetime - persistent fog
+    fogWallParticleSystem.minLifeTime = Number.MAX_SAFE_INTEGER;
+    fogWallParticleSystem.maxLifeTime = Number.MAX_SAFE_INTEGER;
+
+    // Emit configuration
+    fogWallParticleSystem.manualEmitCount = fogWallParticleSystem.getCapacity();
+
+    // Minimal movement - particles should mostly stay in place
+    fogWallParticleSystem.gravity = new Vector3(0, 0, 0);
+    fogWallParticleSystem.direction1 = new Vector3(0, 0, 0);
+    fogWallParticleSystem.direction2 = new Vector3(0, 0, 0);
+    fogWallParticleSystem.minAngularSpeed = 0;
+    fogWallParticleSystem.maxAngularSpeed = 0;
+    fogWallParticleSystem.minEmitPower = 0;
+    fogWallParticleSystem.maxEmitPower = 0;
+    fogWallParticleSystem.updateSpeed = 0;
+
+    // Blend mode for atmospheric effect
+    fogWallParticleSystem.blendMode = ParticleSystem.BLENDMODE_STANDARD;
+
+    // Start the fog wall
+    fogWallParticleSystem.start();
 
     const sites = [
         {
@@ -1341,6 +1366,25 @@ const startGame = async (nickname: string) => {
 registerBuiltInLoaders();
 activeScene = await createMapScene();
 
+// Create FPS counter for debugging (only in dev mode)
+let fpsDisplay: HTMLDivElement | null = null;
+if (import.meta.env.DEV) {
+    fpsDisplay = document.createElement("div");
+    fpsDisplay.style.position = "fixed";
+    fpsDisplay.style.top = "60px";
+    fpsDisplay.style.right = "20px";
+    fpsDisplay.style.padding = "8px 16px";
+    fpsDisplay.style.fontSize = "14px";
+    fpsDisplay.style.fontWeight = "bold";
+    fpsDisplay.style.color = "white";
+    fpsDisplay.style.background = "rgba(0, 0, 0, 0.7)";
+    fpsDisplay.style.borderRadius = "6px";
+    fpsDisplay.style.zIndex = "100";
+    fpsDisplay.style.fontFamily = "monospace";
+    fpsDisplay.textContent = "FPS: --";
+    document.body.appendChild(fpsDisplay);
+}
+
 let inspectorActive = false;
 window.addEventListener("keydown", async (e) => {
     if (e.key.toLowerCase() === "f") {
@@ -1356,6 +1400,9 @@ window.addEventListener("keydown", async (e) => {
 
 engine.runRenderLoop(function () {
     activeScene?.render();
+    if (fpsDisplay) {
+        fpsDisplay.textContent = `FPS: ${engine.getFps().toFixed(0)}`;
+    }
 });
 
 window.addEventListener("resize", function () {

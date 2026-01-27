@@ -181,7 +181,7 @@ const updateNameLabel = (labelMesh: Mesh | undefined, name: string) => {
     texture.update(false);
 };
 
-const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Room) {
+const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Room, nickname: string) {
     const playerMesh = createPlayerMesh(scene);
 
     // Create camera
@@ -208,9 +208,177 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
     let lastSentRotation = Quaternion.FromEulerAngles(0, 0, 0);
     const positionSendIntervalMs = 100;
 
+    let gameMenuOverlay: HTMLDivElement | null = null;
+
+    const toggleGameMenu = () => {
+        if (gameMenuOverlay) {
+            // Close menu
+            gameMenuOverlay.remove();
+            gameMenuOverlay = null;
+            canvas.requestPointerLock();
+        } else {
+            // Open menu
+            document.exitPointerLock();
+
+            gameMenuOverlay = document.createElement("div");
+            gameMenuOverlay.style.position = "fixed";
+            gameMenuOverlay.style.inset = "0";
+            gameMenuOverlay.style.background = "rgba(0, 0, 0, 0.90)";
+            gameMenuOverlay.style.display = "flex";
+            gameMenuOverlay.style.flexDirection = "column";
+            gameMenuOverlay.style.alignItems = "center";
+            gameMenuOverlay.style.justifyContent = "center";
+            gameMenuOverlay.style.color = "white";
+            gameMenuOverlay.style.fontFamily = "sans-serif";
+            gameMenuOverlay.style.zIndex = "1000";
+            gameMenuOverlay.style.padding = "40px 20px";
+            gameMenuOverlay.style.overflowY = "auto";
+
+            const menuContainer = document.createElement("div");
+            menuContainer.style.maxWidth = "500px";
+            menuContainer.style.width = "100%";
+
+            // Menu title
+            const title = document.createElement("h1");
+            title.textContent = "Menu";
+            title.style.margin = "0 0 40px 0";
+            title.style.fontSize = "48px";
+            title.style.fontWeight = "bold";
+            title.style.textAlign = "center";
+            menuContainer.appendChild(title);
+
+            // Change Name section
+            const nameSection = document.createElement("div");
+            nameSection.style.background = "rgba(255, 255, 255, 0.05)";
+            nameSection.style.padding = "24px";
+            nameSection.style.borderRadius = "8px";
+            nameSection.style.marginBottom = "20px";
+
+            const nameLabel = document.createElement("label");
+            nameLabel.textContent = "Name";
+            nameLabel.style.display = "block";
+            nameLabel.style.marginBottom = "12px";
+            nameLabel.style.fontSize = "16px";
+            nameLabel.style.fontWeight = "600";
+            nameSection.appendChild(nameLabel);
+
+            const nameInput = document.createElement("input");
+            nameInput.type = "text";
+            nameInput.value = nickname;
+            nameInput.style.width = "100%";
+            nameInput.style.boxSizing = "border-box";
+            nameInput.style.padding = "12px";
+            nameInput.style.borderRadius = "6px";
+            nameInput.style.border = "1px solid rgba(255, 255, 255, 0.2)";
+            nameInput.style.background = "rgba(0, 0, 0, 0.3)";
+            nameInput.style.color = "white";
+            nameInput.style.fontSize = "16px";
+            nameInput.style.marginBottom = "12px";
+            nameSection.appendChild(nameInput);
+
+            const updateNameBtn = document.createElement("button");
+            updateNameBtn.textContent = "Save";
+            updateNameBtn.style.width = "100%";
+            updateNameBtn.style.padding = "12px 24px";
+            updateNameBtn.style.border = "none";
+            updateNameBtn.style.borderRadius = "6px";
+            updateNameBtn.style.cursor = "pointer";
+            updateNameBtn.style.background = "#3b82f6";
+            updateNameBtn.style.color = "white";
+            updateNameBtn.style.fontWeight = "bold";
+            updateNameBtn.style.fontSize = "16px";
+            updateNameBtn.style.transition = "background 0.2s ease";
+            updateNameBtn.addEventListener("mouseenter", () => {
+                updateNameBtn.style.background = "#2563eb";
+            });
+            updateNameBtn.addEventListener("mouseleave", () => {
+                updateNameBtn.style.background = "#3b82f6";
+            });
+            updateNameBtn.addEventListener("click", () => {
+                const newName = nameInput.value.trim();
+                if (newName && room) {
+                    nickname = newName;
+                    room.send("setName", { name: newName });
+
+                    const originalText = updateNameBtn.textContent;
+                    const originalBackground = updateNameBtn.style.background;
+                    updateNameBtn.textContent = "✓";
+                    updateNameBtn.style.background = "#10b981";
+                    updateNameBtn.disabled = true;
+
+                    setTimeout(() => {
+                        updateNameBtn.textContent = originalText;
+                        updateNameBtn.style.background = originalBackground;
+                        updateNameBtn.disabled = false;
+                    }, 2000);
+                }
+            });
+            nameSection.appendChild(updateNameBtn);
+            menuContainer.appendChild(nameSection);
+
+            // Action buttons
+            const actionsSection = document.createElement("div");
+            actionsSection.style.display = "flex";
+            actionsSection.style.flexDirection = "column";
+            actionsSection.style.gap = "12px";
+            actionsSection.style.marginBottom = "60px";
+
+            const backToMapBtn = document.createElement("button");
+            backToMapBtn.textContent = "Back to Map";
+            backToMapBtn.style.width = "100%";
+            backToMapBtn.style.padding = "12px 24px";
+            backToMapBtn.style.border = "none";
+            backToMapBtn.style.borderRadius = "6px";
+            backToMapBtn.style.cursor = "pointer";
+            backToMapBtn.style.background = "rgba(255, 255, 255, 0.1)";
+            backToMapBtn.style.color = "white";
+            backToMapBtn.style.fontWeight = "bold";
+            backToMapBtn.style.fontSize = "16px";
+            backToMapBtn.style.transition = "background 0.2s ease";
+            backToMapBtn.addEventListener("mouseenter", () => {
+                backToMapBtn.style.background = "rgba(255, 255, 255, 0.2)";
+            });
+            backToMapBtn.addEventListener("mouseleave", () => {
+                backToMapBtn.style.background = "rgba(255, 255, 255, 0.1)";
+            });
+            backToMapBtn.addEventListener("click", async () => {
+                gameMenuOverlay?.remove();
+                gameMenuOverlay = null;
+                activeScene?.dispose();
+                gameStarted = false;
+                selectedSite = null;
+                activeScene = await createMapScene();
+            });
+            actionsSection.appendChild(backToMapBtn);
+            menuContainer.appendChild(actionsSection);
+
+            // Footer
+            const footer = document.createElement("footer");
+            footer.style.textAlign = "center";
+            footer.style.marginTop = "40px";
+            footer.style.paddingTop = "40px";
+            footer.style.borderTop = "1px solid rgba(255, 255, 255, 0.1)";
+            footer.style.opacity = "0.4";
+            footer.style.fontSize = "13px";
+            footer.innerHTML = `<p>&copy; 2026 Heritage Iraq</p>
+                <p style="margin-top: 8px;">Part of <a href="https://pih.education" target="_blank" style="color: white; text-decoration: underline;">Project Innovation Hub</a></p>`;
+            menuContainer.appendChild(footer);
+
+            gameMenuOverlay.appendChild(menuContainer);
+            document.body.appendChild(gameMenuOverlay);
+
+            // Close menu when clicking on overlay (but not on menu content)
+            gameMenuOverlay.addEventListener("click", (e) => {
+                if (e.target === gameMenuOverlay) {
+                    toggleGameMenu();
+                }
+            });
+        }
+    };
+
     window.addEventListener("keydown", (e) => {
         if (e.key.toLowerCase() === "escape") {
-            document.exitPointerLock();
+            toggleGameMenu();
         } else {
             inputMap[e.key.toUpperCase()] = true;
             // Handle jumping
@@ -464,7 +632,7 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
         }
     });
 
-    return { camera, playerMesh };
+    return { camera, playerMesh, toggleGameMenu };
 };
 
 const createScene = async function (nickname: string, worldModelPath?: string | null) {
@@ -625,9 +793,51 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
         updateStatus("OFFLINE");
     }
 
-    const { camera, playerMesh } = setupCamera(canvas, scene, room!);
+    // Find or create leftContainer for UI elements
+    let leftContainer = document.querySelector('[data-ui-container="left"]') as HTMLDivElement;
+    if (!leftContainer) {
+        leftContainer = document.createElement("div");
+        leftContainer.setAttribute("data-ui-container", "left");
+        leftContainer.style.position = "fixed";
+        leftContainer.style.top = "20px";
+        leftContainer.style.left = "20px";
+        leftContainer.style.zIndex = "100";
+        leftContainer.style.display = "flex";
+        leftContainer.style.flexDirection = "column";
+        leftContainer.style.gap = "20px";
+        leftContainer.style.maxWidth = "390px";
+        document.body.appendChild(leftContainer);
+    }
+
+    const { camera, playerMesh, toggleGameMenu } = setupCamera(canvas, scene, room!, nickname);
     setupLight(scene);
     setupSkybox(scene);
+
+    // Create persistent menu button for mobile and desktop
+    const menuButton = document.createElement("button");
+    menuButton.textContent = "☰";
+    menuButton.style.width = "50px";
+    menuButton.style.height = "50px";
+    menuButton.style.fontSize = "24px";
+    menuButton.style.background = "rgba(0, 0, 0, 0.7)";
+    menuButton.style.color = "white";
+    menuButton.style.border = "2px solid rgba(255, 255, 255, 0.3)";
+    menuButton.style.borderRadius = "8px";
+    menuButton.style.cursor = "pointer";
+    menuButton.style.display = "flex";
+    menuButton.style.alignItems = "center";
+    menuButton.style.justifyContent = "center";
+    menuButton.style.transition = "all 0.2s ease";
+    menuButton.addEventListener("mouseenter", () => {
+        menuButton.style.background = "rgba(0, 0, 0, 0.9)";
+        menuButton.style.borderColor = "rgba(255, 255, 255, 0.5)";
+    });
+    menuButton.addEventListener("mouseleave", () => {
+        menuButton.style.background = "rgba(0, 0, 0, 0.7)";
+        menuButton.style.borderColor = "rgba(255, 255, 255, 0.3)";
+    });
+    menuButton.addEventListener("click", toggleGameMenu);
+    leftContainer.appendChild(menuButton);
 
     // Enable ambient occlusion
     const ssao = new SSAO2RenderingPipeline("ssao", scene, {
@@ -720,6 +930,7 @@ const createMapScene = async () => {
 
     // Create container for left-side UI elements
     const leftContainer = document.createElement("div");
+    leftContainer.setAttribute("data-ui-container", "left");
     leftContainer.style.position = "fixed";
     leftContainer.style.top = "20px";
     leftContainer.style.left = "20px";

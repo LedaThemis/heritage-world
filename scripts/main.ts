@@ -680,15 +680,9 @@ const createMapScene = async () => {
     scene.clearColor = new Color4(220 / 255, 220 / 255, 220 / 255, 1);
 
     // Enable ambient occlusion
-    const ssao = new SSAO2RenderingPipeline("ssao", scene, {
-        ssaoRatio: 0.5,
-        blurRatio: 1,
-    });
-    ssao.radius = 2;
-    ssao.totalStrength = 1.3;
-    ssao.expensiveBlur = true;
+    const ssao = new SSAO2RenderingPipeline("ssao", scene, 1);
+    ssao.radius = 1.5;
     ssao.samples = 16;
-    ssao.maxZ = 250;
     scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("ssao", camera);
 
     // Create container for left-side UI elements

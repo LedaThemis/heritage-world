@@ -15,8 +15,6 @@ import {
     ArcRotateCamera,
     PointerEventTypes,
     HavokPlugin,
-    PhysicsAggregate,
-    PhysicsShapeType,
     UniversalCamera,
     StandardMaterial,
     CubeTexture,
@@ -996,7 +994,7 @@ const createMapScene = async () => {
         }
     };
 
-    startExperienceBtn.addEventListener("click", () => {
+    startExperienceBtn.addEventListener("click", async () => {
         if (currentFocusedSite) {
             // Store the selected site
             const site = sites.find((s) => s.id === currentFocusedSite);
@@ -1007,8 +1005,10 @@ const createMapScene = async () => {
             sidePanel.remove();
             headerTip.remove();
             experienceContainer.remove();
-            // Show main menu for nickname entry
-            createMainMenu(startGame);
+
+            // Start game with randomly generated name
+            const nickname = generateFriendlyName();
+            await startGame(nickname);
         }
     });
 
@@ -1331,62 +1331,6 @@ const createMapScene = async () => {
     });
 
     return scene;
-};
-
-// Simple main menu overlay with nickname input and start button
-const createMainMenu = (onStart: (nickname: string) => void) => {
-    // TODO: Consider moving this to html?
-    const overlay = document.createElement("div");
-    overlay.style.position = "fixed";
-    overlay.style.inset = "0";
-    overlay.style.background = "rgba(0, 0, 0, 0.85)";
-    overlay.style.display = "flex";
-    overlay.style.flexDirection = "column";
-    overlay.style.alignItems = "center";
-    overlay.style.justifyContent = "center";
-    overlay.style.gap = "12px";
-    overlay.style.color = "white";
-    overlay.style.fontFamily = "sans-serif";
-    overlay.style.zIndex = "999";
-
-    const header = document.createElement("h1");
-    header.textContent = "Heritage World";
-    header.style.margin = "0";
-    overlay.appendChild(header);
-
-    const title = document.createElement("h2");
-    title.textContent = "Enter your nickname";
-    title.style.margin = "0";
-    overlay.appendChild(title);
-
-    const input = document.createElement("input");
-    input.type = "text";
-    input.value = generateFriendlyName();
-    input.style.padding = "8px 12px";
-    input.style.borderRadius = "6px";
-    input.style.border = "1px solid #444";
-    input.style.minWidth = "220px";
-    overlay.appendChild(input);
-
-    const startBtn = document.createElement("button");
-    startBtn.textContent = "Begin";
-    startBtn.style.padding = "10px 16px";
-    startBtn.style.border = "none";
-    startBtn.style.borderRadius = "6px";
-    startBtn.style.cursor = "pointer";
-    startBtn.style.background = "#3b82f6";
-    startBtn.style.color = "white";
-    startBtn.style.fontWeight = "bold";
-    overlay.appendChild(startBtn);
-
-    startBtn.addEventListener("click", async () => {
-        if (gameStarted) return;
-        gameStarted = true;
-        overlay.remove();
-        onStart(input.value.trim() || input.value);
-    });
-
-    document.body.appendChild(overlay);
 };
 
 const startGame = async (nickname: string) => {

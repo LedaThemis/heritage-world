@@ -840,43 +840,53 @@ const createMapScene = async () => {
     panelHeader.style.fontWeight = "bold";
     sidePanel.appendChild(panelHeader);
 
-    // Create description box (hidden by default)
-    const descriptionBox = document.createElement("div");
-    descriptionBox.style.position = "fixed";
-    descriptionBox.style.bottom = "0px";
-    descriptionBox.style.right = "0";
-    descriptionBox.style.padding = "16px 24px";
-    descriptionBox.style.margin = "20px";
-    descriptionBox.style.maxWidth = "500px";
-    descriptionBox.style.fontSize = "20px";
+    // Create combined container for description and button (hidden by default)
+    const experienceContainer = document.createElement("div");
+    experienceContainer.style.position = "fixed";
+    experienceContainer.style.bottom = "20px";
+    experienceContainer.style.right = "20px";
+    experienceContainer.style.maxWidth = "300px";
+    experienceContainer.style.background = "rgba(0, 0, 0, 0.85)";
+    experienceContainer.style.borderRadius = "12px";
+    experienceContainer.style.padding = "20px";
+    experienceContainer.style.zIndex = "100";
+    experienceContainer.style.display = "none";
+    experienceContainer.style.flexDirection = "column";
+    experienceContainer.style.gap = "16px";
+    experienceContainer.style.alignItems = "center";
+    document.body.appendChild(experienceContainer);
+
+    // Create description text
+    const descriptionBox = document.createElement("p");
+    descriptionBox.style.position = "relative";
+    descriptionBox.style.margin = "0";
+    descriptionBox.style.fontSize = "18px";
     descriptionBox.style.lineHeight = "1.5";
     descriptionBox.style.color = "white";
-    descriptionBox.style.background = "rgba(0, 0, 0, 0.7)";
-    descriptionBox.style.borderRadius = "8px";
-    descriptionBox.style.zIndex = "100";
-    descriptionBox.style.display = "none";
     descriptionBox.style.textAlign = "center";
-    document.body.appendChild(descriptionBox);
+    experienceContainer.appendChild(descriptionBox);
 
-    // Create Start Experience button (hidden by default)
+    // Create Start Experience button
     const startExperienceBtn = document.createElement("button");
     startExperienceBtn.textContent = "Start Experience";
-    startExperienceBtn.style.position = "fixed";
-    startExperienceBtn.style.bottom = "0px";
-    startExperienceBtn.style.right = "0px";
-    startExperienceBtn.style.margin = "20px";
-    startExperienceBtn.style.padding = "12px 24px";
-    startExperienceBtn.style.fontSize = "24px";
+    startExperienceBtn.style.position = "relative";
+    startExperienceBtn.style.width = "100%";
+    startExperienceBtn.style.padding = "12px 32px";
+    startExperienceBtn.style.fontSize = "18px";
     startExperienceBtn.style.fontWeight = "bold";
     startExperienceBtn.style.background = "#3b82f6";
     startExperienceBtn.style.color = "white";
     startExperienceBtn.style.border = "none";
     startExperienceBtn.style.borderRadius = "8px";
     startExperienceBtn.style.cursor = "pointer";
-    startExperienceBtn.style.zIndex = "100";
-    startExperienceBtn.style.display = "none";
-    startExperienceBtn.style.transition = "opacity 0.3s ease";
-    document.body.appendChild(startExperienceBtn);
+    startExperienceBtn.style.transition = "all 0.2s ease";
+    startExperienceBtn.addEventListener("mouseenter", () => {
+        startExperienceBtn.style.background = "#2563eb";
+    });
+    startExperienceBtn.addEventListener("mouseleave", () => {
+        startExperienceBtn.style.background = "#3b82f6";
+    });
+    experienceContainer.appendChild(startExperienceBtn);
 
     let currentFocusedSite: string | null = null;
 
@@ -964,12 +974,10 @@ const createMapScene = async () => {
             selectedSite = site || null;
 
             // Clean up map scene UI
-            // websiteHeader.remove();
             infoPanel.remove();
-            headerTip.remove();
-            descriptionBox.remove();
-            startExperienceBtn.remove();
             sidePanel.remove();
+            headerTip.remove();
+            experienceContainer.remove();
             // Show main menu for nickname entry
             createMainMenu(startGame);
         }
@@ -979,8 +987,7 @@ const createMapScene = async () => {
     window.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && currentFocusedSite) {
             currentFocusedSite = null;
-            startExperienceBtn.style.display = "none";
-            descriptionBox.style.display = "none";
+            experienceContainer.style.display = "none";
             animateCameraFocus(Vector3.Zero(), 60);
         }
     });
@@ -1118,8 +1125,7 @@ const createMapScene = async () => {
 
         siteCard.addEventListener("click", () => {
             currentFocusedSite = site.id;
-            startExperienceBtn.style.display = "none";
-            descriptionBox.style.display = "none";
+            experienceContainer.style.display = "none";
 
             const targetPosition = site.position.clone();
             targetPosition.y = 0;
@@ -1140,8 +1146,7 @@ const createMapScene = async () => {
             const finalAlpha = currentAlpha + deltaAlpha;
 
             animateCameraFocus(targetPosition, targetRadius, finalAlpha, animationDuration, () => {
-                startExperienceBtn.style.display = "block";
-                descriptionBox.style.display = "block";
+                experienceContainer.style.display = "flex";
                 descriptionBox.textContent = site.description;
             });
         });
@@ -1230,8 +1235,6 @@ const createMapScene = async () => {
             const target = clickedMesh.name.replace("site-", "");
 
             currentFocusedSite = target;
-            startExperienceBtn.style.display = "none";
-            descriptionBox.style.display = "none";
 
             // Find and display site description
             const siteData = sites.find((s) => s.id === target);
@@ -1262,8 +1265,7 @@ const createMapScene = async () => {
             const finalAlpha = currentAlpha + deltaAlpha;
 
             animateCameraFocus(targetPosition, targetRadius, finalAlpha, animationDuration, () => {
-                startExperienceBtn.style.display = "block";
-                descriptionBox.style.display = "block";
+                experienceContainer.style.display = "flex";
             });
         } else if (
             pointerInfo.pickInfo?.hit &&
@@ -1272,8 +1274,7 @@ const createMapScene = async () => {
         ) {
             // Clicking the ground/model refocuses to center
             currentFocusedSite = null;
-            startExperienceBtn.style.display = "none";
-            descriptionBox.style.display = "none";
+            experienceContainer.style.display = "none";
             animateCameraFocus(Vector3.Zero(), 60);
         }
     });

@@ -1,9 +1,5 @@
 // TODO: Side panel: Implement "see more" instead of scrollbar
 // TODO: Make side panel a grid
-// TODO: Remove subtitle when entering virtual world
-// TODO: Menu button (works with ESC)
-// TODO: Players count next to "ONLINE" with person head icon
-// TODO: Change "Start Experience" to be inside box on floating description
 
 import {
     Engine,
@@ -65,6 +61,8 @@ const PLAYER_WIDTH = 1;
 const ADJECTIVES = ["Brave", "Swift", "Clever", "Gentle", "Lucky", "Nimble", "Calm", "Bright"];
 const ANIMALS = ["Fox", "Otter", "Panda", "Hawk", "Wolf", "Dolphin", "Lynx", "Koala"];
 
+let allowedEmotes: string[] = [];
+
 const generateFriendlyName = (): string => {
     const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
     const animal = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
@@ -73,12 +71,15 @@ const generateFriendlyName = (): string => {
 
 const engine = new Engine(canvas, true);
 let activeScene: Scene | null = null;
-let gameStarted = false;
 let selectedSite: { worldModelPath: string | null } | null = null;
 const playerEntities: { [key: string]: Mesh | TransformNode } = {};
 const playerNextPosition: { [key: string]: Vector3 } = {};
 const playerNextRotation: { [key: string]: Quaternion } = {};
 const playerLabels: { [key: string]: Mesh } = {};
+const playerEmotes: { [key: string]: Mesh } = {};
+const playerEmoteTimeouts: { [key: string]: number } = {};
+let currentEmotesButton: HTMLButtonElement | null = null;
+let currentPlayerSessionId: string | null = null;
 
 const setupScene = function (engine: Engine) {
     const scene = new Scene(engine);
@@ -140,6 +141,35 @@ const createNameLabel = (name: string, scene: Scene) => {
     return plane;
 };
 
+const createEmoteBubble = (emote: string, scene: Scene) => {
+    const plane = MeshBuilder.CreatePlane("emote-bubble", { size: 1.5 }, scene);
+    plane.billboardMode = Mesh.BILLBOARDMODE_ALL;
+    plane.isPickable = false;
+    plane.position.y = 3.5;
+
+    const texture = new DynamicTexture("emote-texture", { width: 128, height: 128 }, scene, false);
+    texture.hasAlpha = true;
+
+    // Draw white rounded background
+    const ctx = texture.getContext();
+    ctx.fillStyle = "white";
+    ctx.beginPath();
+    ctx.roundRect(10, 10, 108, 108, 20);
+    ctx.fill();
+
+    // Draw emote
+    texture.drawText(emote, null, 64 + 24, "bold 64px Arial", "black", "transparent", true);
+
+    const mat = new StandardMaterial("emote-mat", scene);
+    mat.diffuseTexture = texture;
+    mat.emissiveColor = new Color3(1, 1, 1);
+    mat.backFaceCulling = false;
+    mat.useAlphaFromDiffuseTexture = true;
+
+    plane.material = mat;
+    return plane;
+};
+
 const createBillboardLabel = (text: string, scene: Scene) => {
     // Calculate dimensions based on text length
     const textLength = text.length;
@@ -179,6 +209,41 @@ const updateNameLabel = (labelMesh: Mesh | undefined, name: string) => {
     texture.clear();
     texture.drawText(name, null, 80, "bold 36px Arial", "white", "transparent", true);
     texture.update(false);
+};
+
+const showEmote = (sessionId: string, emote: string, scene: Scene, parentMesh: Mesh | TransformNode) => {
+    // Clear existing emote and timeout
+    if (playerEmoteTimeouts[sessionId]) {
+        clearTimeout(playerEmoteTimeouts[sessionId]);
+        delete playerEmoteTimeouts[sessionId];
+    }
+    if (playerEmotes[sessionId]) {
+        playerEmotes[sessionId].dispose();
+        delete playerEmotes[sessionId];
+    }
+
+    // Update emotes button for current player
+    const isCurrentPlayer = sessionId === currentPlayerSessionId;
+    if (isCurrentPlayer && currentEmotesButton) {
+        currentEmotesButton.textContent = emote;
+    }
+
+    // Create new emote bubble
+    const emoteBubble = createEmoteBubble(emote, scene);
+    emoteBubble.parent = parentMesh;
+    playerEmotes[sessionId] = emoteBubble;
+
+    // Remove after 3 seconds
+    playerEmoteTimeouts[sessionId] = setTimeout(() => {
+        emoteBubble.dispose();
+        delete playerEmotes[sessionId];
+        delete playerEmoteTimeouts[sessionId];
+
+        // Reset emotes button for current player
+        if (isCurrentPlayer && currentEmotesButton) {
+            currentEmotesButton.textContent = "😊";
+        }
+    }, 3000);
 };
 
 const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Room, nickname: string) {
@@ -385,6 +450,15 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
     window.addEventListener("keydown", (e) => {
         if (e.key.toLowerCase() === "escape") {
             toggleGameMenu();
+        } else if (e.key >= "1" && e.key <= "9") {
+            // Handle emote shortcuts (1-9 or however many emotes exist)
+            const emoteIndex = parseInt(e.key) - 1;
+            const emote = allowedEmotes[emoteIndex];
+            if (emote && room) {
+                room.send("sendEmote", { emote });
+                // Show emote locally immediately
+                showEmote(room.sessionId, emote, scene, playerMesh);
+            }
         } else {
             inputMap[e.key.toUpperCase()] = true;
             // Handle jumping
@@ -688,6 +762,7 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
     let room: Room | null;
     try {
         room = await client.joinOrCreate("central", { nickname });
+        currentPlayerSessionId = room.sessionId;
         room.send("setName", { name: nickname });
         const $ = getStateCallbacks<PlayerRoomType>(room);
 
@@ -698,6 +773,23 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
 
         room.onMessage("playerCount", (message: { count: number }) => {
             updateStatus("ONLINE", message.count);
+        });
+
+        // Request and listen for allowed emotes
+        room.send("getAllowedEmotes");
+        room.onMessage("allowedEmotes", (message: { emotes: string[] }) => {
+            allowedEmotes = message.emotes;
+        });
+
+        // Listen for player emotes
+        room.onMessage("playerEmote", (message: { sessionId: string; emote: string }) => {
+            // Don't show own emote again (already shown locally)
+            if (message.sessionId === room?.sessionId) return;
+
+            const entity = playerEntities[message.sessionId];
+            if (entity) {
+                showEmote(message.sessionId, message.emote, scene, entity);
+            }
         });
 
         // Initial player count request
@@ -793,6 +885,16 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
             delete playerNextRotation[sessionId];
             playerLabels[sessionId]?.dispose();
             delete playerLabels[sessionId];
+
+            // Clean up emote bubble and timeout
+            if (playerEmoteTimeouts[sessionId]) {
+                clearTimeout(playerEmoteTimeouts[sessionId]);
+                delete playerEmoteTimeouts[sessionId];
+            }
+            if (playerEmotes[sessionId]) {
+                playerEmotes[sessionId].dispose();
+                delete playerEmotes[sessionId];
+            }
         });
     } catch (error) {
         console.error("Room error:", error);
@@ -844,6 +946,142 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
     });
     menuButton.addEventListener("click", toggleGameMenu);
     leftContainer.appendChild(menuButton);
+
+    // Create emotes button
+    const emotesButton = document.createElement("button");
+    currentEmotesButton = emotesButton;
+    emotesButton.textContent = "😊";
+    emotesButton.style.width = "50px";
+    emotesButton.style.height = "50px";
+    emotesButton.style.fontSize = "24px";
+    emotesButton.style.background = "rgba(0, 0, 0, 0.7)";
+    emotesButton.style.color = "white";
+    emotesButton.style.border = "2px solid rgba(255, 255, 255, 0.3)";
+    emotesButton.style.borderRadius = "8px";
+    emotesButton.style.cursor = "pointer";
+    emotesButton.style.display = "flex";
+    emotesButton.style.alignItems = "center";
+    emotesButton.style.justifyContent = "center";
+    emotesButton.style.transition = "all 0.2s ease";
+    emotesButton.addEventListener("mouseenter", () => {
+        emotesButton.style.background = "rgba(0, 0, 0, 0.9)";
+        emotesButton.style.borderColor = "rgba(255, 255, 255, 0.5)";
+    });
+    emotesButton.addEventListener("mouseleave", () => {
+        emotesButton.style.background = "rgba(0, 0, 0, 0.7)";
+        emotesButton.style.borderColor = "rgba(255, 255, 255, 0.3)";
+    });
+
+    // Create emotes panel (hidden by default)
+    let emotesPanel: HTMLDivElement | null = null;
+
+    const toggleEmotesPanel = () => {
+        if (emotesPanel) {
+            emotesPanel.remove();
+            emotesPanel = null;
+        } else {
+            emotesPanel = document.createElement("div");
+            emotesPanel.style.position = "fixed";
+            emotesPanel.style.bottom = "20px";
+            emotesPanel.style.left = "20px";
+            emotesPanel.style.background = "rgba(0, 0, 0, 0.9)";
+            emotesPanel.style.borderRadius = "12px";
+            emotesPanel.style.padding = "16px";
+            emotesPanel.style.display = "grid";
+            emotesPanel.style.gridTemplateColumns = "repeat(5, 1fr)";
+            emotesPanel.style.gap = "8px";
+            emotesPanel.style.maxWidth = "300px";
+            emotesPanel.style.zIndex = "1001";
+            emotesPanel.style.border = "2px solid rgba(255, 255, 255, 0.2)";
+
+            // Add title
+            const title = document.createElement("div");
+            title.textContent = "Emotes";
+            title.style.gridColumn = "1 / -1";
+            title.style.color = "white";
+            title.style.fontFamily = "sans-serif";
+            title.style.fontSize = "14px";
+            title.style.fontWeight = "bold";
+            title.style.marginBottom = "8px";
+            title.style.textAlign = "center";
+            emotesPanel.appendChild(title);
+
+            // Add emote buttons
+            allowedEmotes.forEach((emote, index) => {
+                const emoteBtn = document.createElement("button");
+                emoteBtn.textContent = emote;
+                emoteBtn.style.width = "45px";
+                emoteBtn.style.height = "45px";
+                emoteBtn.style.fontSize = "24px";
+                emoteBtn.style.background = "rgba(255, 255, 255, 0.1)";
+                emoteBtn.style.border = "1px solid rgba(255, 255, 255, 0.2)";
+                emoteBtn.style.borderRadius = "8px";
+                emoteBtn.style.cursor = "pointer";
+                emoteBtn.style.transition = "all 0.2s ease";
+                emoteBtn.style.display = "flex";
+                emoteBtn.style.alignItems = "center";
+                emoteBtn.style.justifyContent = "center";
+
+                // Show keyboard shortcut for first 9 emotes
+                if (index < 9) {
+                    emoteBtn.title = `Press ${index + 1} to use this emote`;
+                }
+
+                emoteBtn.addEventListener("mouseenter", () => {
+                    emoteBtn.style.background = "rgba(255, 255, 255, 0.3)";
+                    emoteBtn.style.transform = "scale(1.1)";
+                });
+                emoteBtn.addEventListener("mouseleave", () => {
+                    emoteBtn.style.background = "rgba(255, 255, 255, 0.1)";
+                    emoteBtn.style.transform = "scale(1)";
+                });
+                emoteBtn.addEventListener("click", () => {
+                    if (room) {
+                        room.send("sendEmote", { emote });
+                        showEmote(room.sessionId, emote, scene, playerMesh);
+                    }
+                    toggleEmotesPanel(); // Close panel after selecting
+                });
+
+                emotesPanel!.appendChild(emoteBtn);
+            });
+
+            // Add helper text for keyboard shortcuts
+            const helper = document.createElement("div");
+            helper.textContent = "Press 1-9 for quick access";
+            helper.style.gridColumn = "1 / -1";
+            helper.style.color = "rgba(255, 255, 255, 0.6)";
+            helper.style.fontFamily = "sans-serif";
+            helper.style.fontSize = "11px";
+            helper.style.marginTop = "8px";
+            helper.style.textAlign = "center";
+            emotesPanel.appendChild(helper);
+
+            document.body.appendChild(emotesPanel);
+
+            // Close when clicking outside
+            const closeOnOutsideClick = (e: MouseEvent) => {
+                if (emotesPanel && !emotesPanel.contains(e.target as Node) && e.target !== emotesButton) {
+                    toggleEmotesPanel();
+                    document.removeEventListener("click", closeOnOutsideClick);
+                }
+            };
+            setTimeout(() => {
+                document.addEventListener("click", closeOnOutsideClick);
+            }, 0);
+        }
+    };
+
+    emotesButton.addEventListener("click", toggleEmotesPanel);
+    leftContainer.appendChild(emotesButton);
+
+    // Add keyboard shortcut for emotes panel (E key)
+    window.addEventListener("keydown", (e) => {
+        if (e.key.toLowerCase() === "e") {
+            document.exitPointerLock();
+            toggleEmotesPanel();
+        }
+    });
 
     // Enable ambient occlusion
     const ssao = new SSAO2RenderingPipeline("ssao", scene, {

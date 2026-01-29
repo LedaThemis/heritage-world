@@ -394,6 +394,29 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
             actionsSection.style.gap = "12px";
             actionsSection.style.marginBottom = "60px";
 
+            const backToGameBtn = document.createElement("button");
+            backToGameBtn.textContent = "Return to Game";
+            backToGameBtn.style.width = "100%";
+            backToGameBtn.style.padding = "12px 24px";
+            backToGameBtn.style.border = "none";
+            backToGameBtn.style.borderRadius = "6px";
+            backToGameBtn.style.cursor = "pointer";
+            backToGameBtn.style.background = "rgba(255, 255, 255, 0.1)";
+            backToGameBtn.style.color = "white";
+            backToGameBtn.style.fontWeight = "bold";
+            backToGameBtn.style.fontSize = "16px";
+            backToGameBtn.style.transition = "background 0.2s ease";
+            backToGameBtn.addEventListener("mouseenter", () => {
+                backToGameBtn.style.background = "rgba(255, 255, 255, 0.2)";
+            });
+            backToGameBtn.addEventListener("mouseleave", () => {
+                backToGameBtn.style.background = "rgba(255, 255, 255, 0.1)";
+            });
+            backToGameBtn.addEventListener("click", async () => {
+                toggleGameMenu();
+            });
+            actionsSection.appendChild(backToGameBtn);
+
             const backToMapBtn = document.createElement("button");
             backToMapBtn.textContent = "Back to Map";
             backToMapBtn.style.width = "100%";
@@ -416,7 +439,6 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
                 gameMenuOverlay?.remove();
                 gameMenuOverlay = null;
                 activeScene?.dispose();
-                gameStarted = false;
                 selectedSite = null;
                 activeScene = await createMapScene();
             });

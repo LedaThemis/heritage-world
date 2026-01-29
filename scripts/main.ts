@@ -47,6 +47,16 @@ interface PlayerRoomType {
     }[];
 }
 
+interface HeritageSite {
+    id: string;
+    name: string;
+    position: Vector3;
+    description: string;
+    thumbnailPath: string;
+    modelPath?: string | null;
+    worldModelPath?: string | null;
+}
+
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement | null;
 
 if (!canvas) {
@@ -71,7 +81,7 @@ const generateFriendlyName = (): string => {
 
 const engine = new Engine(canvas, true);
 let activeScene: Scene | null = null;
-let selectedSite: { worldModelPath: string | null } | null = null;
+let selectedSite: HeritageSite | null = null;
 const playerEntities: { [key: string]: Mesh | TransformNode } = {};
 const playerNextPosition: { [key: string]: Vector3 } = {};
 const playerNextRotation: { [key: string]: Quaternion } = {};
@@ -436,6 +446,7 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
                 backToMapBtn.style.background = "rgba(255, 255, 255, 0.1)";
             });
             backToMapBtn.addEventListener("click", async () => {
+                room.leave();
                 gameMenuOverlay?.remove();
                 gameMenuOverlay = null;
                 activeScene?.dispose();
@@ -783,7 +794,7 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
     const client = new Client(import.meta.env.VITE_SERVER_URL);
     let room: Room | null;
     try {
-        room = await client.joinOrCreate("central", { nickname });
+        room = await client.joinOrCreate("central", { nickname, siteId: selectedSite?.id || "map" });
         currentPlayerSessionId = room.sessionId;
         room.send("setName", { name: nickname });
         const $ = getStateCallbacks<PlayerRoomType>(room);
@@ -1567,7 +1578,7 @@ const createMapScene = async () => {
     // Start the fog wall
     fogWallParticleSystem.start();
 
-    const sites = [
+    const sites: HeritageSite[] = [
         {
             id: "1",
             name: "Hosh Al-Bay'ah Collection",

@@ -53,8 +53,11 @@ interface HeritageSite {
     position: Vector3;
     description: string;
     thumbnailPath: string;
-    modelPath?: string | null;
-    worldModelPath?: string | null;
+    modelPath?: string;
+    worldModelPath?: string;
+    websiteUrl?: string;
+    virtualWalkthroughUrl?: string;
+    sketchfabUrl?: string;
 }
 
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement | null;
@@ -1349,39 +1352,147 @@ const createMapScene = async () => {
     panelHeader.style.fontWeight = "bold";
     sidePanel.appendChild(panelHeader);
 
-    // Create combined container for description and button (hidden by default)
+    // Create right panel for site details (hidden by default)
     const experienceContainer = document.createElement("div");
     experienceContainer.style.position = "fixed";
-    experienceContainer.style.bottom = "20px";
-    experienceContainer.style.right = "20px";
-    experienceContainer.style.maxWidth = "300px";
+    experienceContainer.style.top = "20px";
+    experienceContainer.style.right = "-400px"; // Start off-screen
+    experienceContainer.style.width = "360px";
+    experienceContainer.style.maxHeight = "calc(100vh - 40px)";
+    experienceContainer.style.overflowY = "auto";
     experienceContainer.style.background = "rgba(0, 0, 0, 0.85)";
     experienceContainer.style.borderRadius = "12px";
-    experienceContainer.style.padding = "20px";
+    experienceContainer.style.padding = "24px";
     experienceContainer.style.zIndex = "100";
-    experienceContainer.style.display = "none";
+    experienceContainer.style.display = "flex";
     experienceContainer.style.flexDirection = "column";
-    experienceContainer.style.gap = "16px";
-    experienceContainer.style.alignItems = "center";
+    experienceContainer.style.gap = "20px";
+    experienceContainer.style.transition = "right 0.4s cubic-bezier(0.4, 0, 0.2, 1)";
+    experienceContainer.style.fontFamily = "sans-serif";
+    experienceContainer.classList.add("custom-scrollbar");
     document.body.appendChild(experienceContainer);
+
+    // Create site title
+    const siteTitle = document.createElement("h2");
+    siteTitle.style.margin = "0";
+    siteTitle.style.fontSize = "24px";
+    siteTitle.style.fontWeight = "bold";
+    siteTitle.style.color = "white";
+    experienceContainer.appendChild(siteTitle);
 
     // Create description text
     const descriptionBox = document.createElement("p");
-    descriptionBox.style.position = "relative";
     descriptionBox.style.margin = "0";
-    descriptionBox.style.fontSize = "18px";
-    descriptionBox.style.lineHeight = "1.5";
-    descriptionBox.style.color = "white";
-    descriptionBox.style.textAlign = "center";
+    descriptionBox.style.fontSize = "15px";
+    descriptionBox.style.lineHeight = "1.6";
+    descriptionBox.style.color = "rgba(255, 255, 255, 0.9)";
     experienceContainer.appendChild(descriptionBox);
 
-    // Create Start Experience button
+    // Create features section
+    const featuresSection = document.createElement("div");
+    featuresSection.style.display = "flex";
+    featuresSection.style.flexDirection = "column";
+    featuresSection.style.gap = "12px";
+    featuresSection.style.marginTop = "8px";
+    experienceContainer.appendChild(featuresSection);
+
+    const featuresTitle = document.createElement("h3");
+    featuresTitle.textContent = "Available Features";
+    featuresTitle.style.margin = "0 0 8px 0";
+    featuresTitle.style.fontSize = "16px";
+    featuresTitle.style.fontWeight = "600";
+    featuresTitle.style.color = "white";
+    featuresSection.appendChild(featuresTitle);
+
+    const createFeatureItem = (label: string, available: boolean, url?: string) => {
+        const item = document.createElement("div");
+        item.style.display = "flex";
+        item.style.flexDirection = "column";
+        item.style.gap = "8px";
+        item.style.fontSize = "14px";
+        item.style.color = available ? "rgba(255, 255, 255, 0.9)" : "rgba(255, 255, 255, 0.4)";
+        item.style.padding = "12px";
+        item.style.background = "rgba(255, 255, 255, 0.05)";
+        item.style.borderRadius = "8px";
+
+        const header = document.createElement("div");
+        header.style.display = "flex";
+        header.style.alignItems = "center";
+        header.style.gap = "10px";
+
+        const checkmark = document.createElement("span");
+        checkmark.textContent = available ? "✓" : "✗";
+        checkmark.style.fontSize = "18px";
+        checkmark.style.fontWeight = "bold";
+        checkmark.style.color = available ? "#10b981" : "rgba(255, 255, 255, 0.3)";
+        header.appendChild(checkmark);
+
+        const text = document.createElement("span");
+        text.textContent = label;
+        text.style.fontWeight = "600";
+        header.appendChild(text);
+
+        item.appendChild(header);
+
+        if (url || label.includes("Interactive")) {
+            const linkText = document.createElement("p");
+            linkText.style.margin = "0 0 4px 28px";
+            linkText.style.fontSize = "13px";
+            linkText.style.color = "rgba(255, 255, 255, 0.7)";
+
+            if (label.includes("Sketchfab")) {
+                linkText.textContent = "You can view the Sketchfab collection at:";
+            } else if (label.includes("Website")) {
+                linkText.textContent = "You can visit the external website at:";
+            } else if (label.includes("Virtual Walkthrough")) {
+                linkText.textContent = "You can experience the virtual walkthrough at:";
+            } else if (label.includes("Interactive")) {
+                linkText.textContent =
+                    'You can immerse yourself in the interactive experience by clicking "Start Experience" below.';
+            }
+            item.appendChild(linkText);
+
+            if (url) {
+                const link = document.createElement("a");
+                link.href = url;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                link.textContent = url;
+                link.style.color = "#60a5fa";
+                link.style.fontSize = "13px";
+                link.style.textDecoration = "none";
+                link.style.marginLeft = "28px";
+                link.style.wordBreak = "break-all";
+                link.style.transition = "color 0.2s ease";
+                link.addEventListener("mouseenter", () => {
+                    link.style.color = "#93c5fd";
+                });
+                link.addEventListener("mouseleave", () => {
+                    link.style.color = "#60a5fa";
+                });
+                item.appendChild(link);
+            }
+        }
+
+        return item;
+    };
+
+    const websiteFeature = createFeatureItem("External Website", false);
+    const virtualWalkthroughFeature = createFeatureItem("Virtual Walkthrough", false);
+    const sketchfabFeature = createFeatureItem("Sketchfab 3D Collection", false);
+    const interactiveFeature = createFeatureItem("Interactive Experience", false);
+
+    featuresSection.appendChild(websiteFeature);
+    featuresSection.appendChild(virtualWalkthroughFeature);
+    featuresSection.appendChild(sketchfabFeature);
+    featuresSection.appendChild(interactiveFeature);
+
+    // Create Start Experience button (only visible if interactive experience exists)
     const startExperienceBtn = document.createElement("button");
     startExperienceBtn.textContent = "Start Experience";
-    startExperienceBtn.style.position = "relative";
     startExperienceBtn.style.width = "100%";
     startExperienceBtn.style.padding = "12px 32px";
-    startExperienceBtn.style.fontSize = "18px";
+    startExperienceBtn.style.fontSize = "16px";
     startExperienceBtn.style.fontWeight = "bold";
     startExperienceBtn.style.background = "#3b82f6";
     startExperienceBtn.style.color = "white";
@@ -1389,6 +1500,7 @@ const createMapScene = async () => {
     startExperienceBtn.style.borderRadius = "8px";
     startExperienceBtn.style.cursor = "pointer";
     startExperienceBtn.style.transition = "all 0.2s ease";
+    startExperienceBtn.style.marginTop = "8px";
     startExperienceBtn.addEventListener("mouseenter", () => {
         startExperienceBtn.style.background = "#2563eb";
     });
@@ -1398,6 +1510,43 @@ const createMapScene = async () => {
     experienceContainer.appendChild(startExperienceBtn);
 
     let currentFocusedSite: string | null = null;
+
+    // Update panel with site data
+    const updatePanelWithSite = (site: HeritageSite) => {
+        siteTitle.textContent = site.name;
+        descriptionBox.textContent = site.description;
+
+        // Clear existing features
+        while (featuresSection.children.length > 1) {
+            featuresSection.removeChild(featuresSection.lastChild!);
+        }
+
+        // Add only available features
+        const hasWebsite = !!site.websiteUrl;
+        const hasVirtualWalkthrough = !!site.virtualWalkthroughUrl;
+        const hasSketchfab = !!site.sketchfabUrl;
+        const hasInteractive = !!site.worldModelPath;
+
+        if (hasWebsite) {
+            featuresSection.appendChild(createFeatureItem("External Website", true, site.websiteUrl));
+        }
+        if (hasVirtualWalkthrough) {
+            featuresSection.appendChild(createFeatureItem("Virtual Walkthrough", true, site.virtualWalkthroughUrl));
+        }
+        if (hasSketchfab) {
+            featuresSection.appendChild(createFeatureItem("Sketchfab 3D Collection", true, site.sketchfabUrl));
+        }
+        if (hasInteractive) {
+            featuresSection.appendChild(createFeatureItem("Interactive Experience", true));
+        }
+
+        // Show/hide features section if no features available
+        featuresSection.style.display =
+            hasWebsite || hasVirtualWalkthrough || hasSketchfab || hasInteractive ? "flex" : "none";
+
+        // Show/hide start button based on interactive availability
+        startExperienceBtn.style.display = hasInteractive ? "block" : "none";
+    };
 
     // Reusable function to animate camera focus
     const animateCameraFocus = (
@@ -1498,7 +1647,7 @@ const createMapScene = async () => {
     window.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && currentFocusedSite) {
             currentFocusedSite = null;
-            experienceContainer.style.display = "none";
+            experienceContainer.style.right = "-400px"; // Animate out
             animateCameraFocus(Vector3.Zero(), 60);
         }
     });
@@ -1580,8 +1729,11 @@ const createMapScene = async () => {
             description:
                 "A historic collection showcasing traditional architecture and cultural heritage of the region.",
             thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
-            modelPath: null,
             worldModelPath: "./assets/models/al-tahira-world.glb",
+            websiteUrl: "https://alqaba.com/al-tahira-church",
+            virtualWalkthroughUrl: "https://www.alqaba.com/al-tahira-church/walkthrough",
+            sketchfabUrl:
+                "https://sketchfab.com/HusseinYaseen/collections/hosh-al-bayaah-churchs-67ed28d04539400b87073ef37b3218d8",
         },
         {
             id: "2",
@@ -1590,8 +1742,8 @@ const createMapScene = async () => {
             description:
                 "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
             thumbnailPath: "./assets/sites/mosul.webp",
-            modelPath: null,
-            worldModelPath: null,
+            virtualWalkthroughUrl: "https://www.alqaba.com/old-town/walkthrough",
+            websiteUrl: "https://www.alqaba.com/old-town",
         },
         {
             id: "3",
@@ -1600,8 +1752,6 @@ const createMapScene = async () => {
             description:
                 "One of the oldest continuously inhabited settlements in the world, a UNESCO World Heritage site.",
             thumbnailPath: "./assets/sites/erbil.png",
-            modelPath: null,
-            worldModelPath: null,
         },
         {
             id: "4",
@@ -1610,8 +1760,8 @@ const createMapScene = async () => {
             description:
                 "Home to priceless artifacts from Mesopotamian civilizations and Iraq's rich cultural history.",
             thumbnailPath: "./assets/sites/baghdad-museum.webp",
-            modelPath: null,
-            worldModelPath: null,
+            sketchfabUrl:
+                "https://sketchfab.com/HusseinYaseen/collections/iraqi-museum-b2f69baa92d84b50a90711d5db7d7f18",
         },
         {
             id: "5",
@@ -1620,8 +1770,7 @@ const createMapScene = async () => {
             description:
                 "Ancient Sumerian city-state, birthplace of writing and one of the world's first great cities.",
             thumbnailPath: "./assets/sites/uruk.jpg",
-            modelPath: null,
-            worldModelPath: null,
+            sketchfabUrl: "https://sketchfab.com/HusseinYaseen/collections/uruk-city-0281a1d074b74daf937ccd853b9ec4fc",
         },
         {
             id: "6",
@@ -1630,7 +1779,10 @@ const createMapScene = async () => {
             description: "Unique wetland ecosystem, home to the Marsh Arabs and diverse wildlife in southern Iraq.",
             thumbnailPath: "./assets/sites/marshlands.png",
             modelPath: "./assets/models/mudhif.glb",
-            worldModelPath: null,
+            websiteUrl: "https://alqaba.com/iraq-marshes",
+            virtualWalkthroughUrl: "https://www.alqaba.com/iraq-marshes/walkthrough",
+            sketchfabUrl:
+                "https://sketchfab.com/HusseinYaseen/collections/al-chibayish-marshes-b57822cc6dee4a698669e1e08c1e1f4b",
         },
     ];
 
@@ -1657,7 +1809,7 @@ const createMapScene = async () => {
 
         siteCard.addEventListener("click", () => {
             currentFocusedSite = site.id;
-            experienceContainer.style.display = "none";
+            experienceContainer.style.right = "-400px";
 
             const targetPosition = site.position.clone();
             targetPosition.y = 0;
@@ -1678,8 +1830,11 @@ const createMapScene = async () => {
             const finalAlpha = currentAlpha + deltaAlpha;
 
             animateCameraFocus(targetPosition, targetRadius, finalAlpha, animationDuration, () => {
-                experienceContainer.style.display = "flex";
-                descriptionBox.textContent = site.description;
+                // Populate panel with site data
+                updatePanelWithSite(site);
+
+                // Animate panel in
+                experienceContainer.style.right = "20px";
             });
         });
 
@@ -1767,12 +1922,14 @@ const createMapScene = async () => {
             const clickedMesh = pointerInfo.pickInfo.pickedMesh;
             const target = clickedMesh.name.replace("site-", "");
 
+            experienceContainer.style.right = "-400px"; // Animate out
             currentFocusedSite = target;
 
             // Find and display site description
             const siteData = sites.find((s) => s.id === target);
             if (siteData) {
-                descriptionBox.textContent = siteData.description;
+                // Populate panel with site data
+                updatePanelWithSite(siteData);
             }
 
             // Animate camera to focus on the clicked cube
@@ -1798,7 +1955,8 @@ const createMapScene = async () => {
             const finalAlpha = currentAlpha + deltaAlpha;
 
             animateCameraFocus(targetPosition, targetRadius, finalAlpha, animationDuration, () => {
-                experienceContainer.style.display = "flex";
+                // Animate panel in
+                experienceContainer.style.right = "20px";
             });
         } else if (
             pointerInfo.pickInfo?.hit &&
@@ -1807,7 +1965,7 @@ const createMapScene = async () => {
         ) {
             // Clicking the ground/model refocuses to center
             currentFocusedSite = null;
-            experienceContainer.style.display = "none";
+            experienceContainer.style.right = "-400px"; // Animate out
             animateCameraFocus(Vector3.Zero(), 60);
         }
     });
@@ -1825,7 +1983,7 @@ activeScene = await createMapScene();
 
 // Create FPS counter for debugging (only in dev mode)
 let fpsDisplay: HTMLDivElement | null = null;
-if (import.meta.env.DEV) {
+if (import.meta.env.DEV && false) {
     fpsDisplay = document.createElement("div");
     fpsDisplay.style.position = "fixed";
     fpsDisplay.style.top = "60px";

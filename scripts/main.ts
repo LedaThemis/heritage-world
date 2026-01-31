@@ -1983,7 +1983,7 @@ activeScene = await createMapScene();
 
 // Create FPS counter for debugging (only in dev mode)
 let fpsDisplay: HTMLDivElement | null = null;
-if (import.meta.env.DEV && false) {
+if (import.meta.env.DEV) {
     fpsDisplay = document.createElement("div");
     fpsDisplay.style.position = "fixed";
     fpsDisplay.style.top = "60px";

@@ -1117,15 +1117,9 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
     });
 
     // Enable ambient occlusion
-    const ssao = new SSAO2RenderingPipeline("ssao", scene, {
-        ssaoRatio: 0.5,
-        blurRatio: 1,
-    });
-    ssao.radius = 2;
-    ssao.totalStrength = 1.3;
-    ssao.expensiveBlur = true;
+    const ssao = new SSAO2RenderingPipeline("ssao", scene, 1);
+    ssao.radius = 1.5;
     ssao.samples = 16;
-    ssao.maxZ = 250;
     scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("ssao", camera);
 
     let ground: AbstractMesh | TransformNode;

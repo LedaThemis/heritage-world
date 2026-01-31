@@ -1281,7 +1281,7 @@ const createMapScene = async () => {
 
     const creditsLink = document.createElement("a");
     creditsLink.textContent = "Learn more →";
-    creditsLink.href = "/credits";
+    creditsLink.href = "/credits.html";
     creditsLink.style.color = "#60a5fa";
     creditsLink.style.fontSize = "13px";
     creditsLink.style.textDecoration = "none";

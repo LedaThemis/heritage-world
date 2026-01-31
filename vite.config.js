@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import { visualizer } from "rollup-plugin-visualizer";
+import { resolve } from "path";
 
 export default defineConfig({
     server: {
@@ -8,12 +9,24 @@ export default defineConfig({
     optimizeDeps: {
         exclude: ["@babylonjs/havok"],
     },
+    build: {
+        rollupOptions: {
+            input: {
+                main: resolve(__dirname, "index.html"),
+                credits: resolve(__dirname, "credits.html"),
+            },
+        },
+    },
     plugins: [
-        visualizer({
-            open: false,
-            filename: "dist/stats.html",
-            gzipSize: true,
-            brotliSize: true,
-        }),
+        ...(process.env.ANALYZE
+            ? [
+                  visualizer({
+                      open: false,
+                      filename: "dist/stats.html",
+                      gzipSize: true,
+                      brotliSize: true,
+                  }),
+              ]
+            : []),
     ],
 });

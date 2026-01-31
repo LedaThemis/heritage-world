@@ -1228,24 +1228,6 @@ const createMapScene = async () => {
     const infoPanel = document.createElement("info-panel");
     leftContainer.appendChild(infoPanel);
 
-    // Create header with tip
-    const headerTip = document.createElement("div");
-    headerTip.textContent = "Tip: click on a site for more details";
-    headerTip.style.position = "fixed";
-    headerTip.style.top = "20px";
-    headerTip.style.left = "50%";
-    headerTip.style.transform = "translateX(-50%)";
-    headerTip.style.padding = "12px 24px";
-    headerTip.style.fontSize = "18px";
-    headerTip.style.fontWeight = "500";
-    headerTip.style.color = "white";
-    headerTip.style.background = "rgba(0, 0, 0, 0.5)";
-    headerTip.style.borderRadius = "8px";
-    headerTip.style.zIndex = "100";
-    headerTip.style.pointerEvents = "none";
-    headerTip.style.opacity = "0"; // TODO: Do we show or hide it? It makes the site "cluttery"
-    document.body.appendChild(headerTip);
-
     // Create side panel
     const sidePanel = document.createElement("div");
     sidePanel.style.width = "350px";

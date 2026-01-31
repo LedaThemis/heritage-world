@@ -1,5 +1,6 @@
 // TODO: Side panel: Implement "see more" instead of scrollbar
 // TODO: Make side panel a grid
+import "./ui/components/website-header";
 
 import {
     Engine,
@@ -1221,32 +1222,7 @@ const createMapScene = async () => {
     leftContainer.style.maxWidth = "390px";
     document.body.appendChild(leftContainer);
 
-    // Create website header in top left
-    const websiteHeader = document.createElement("div");
-    websiteHeader.style.padding = "20px";
-    websiteHeader.style.background = "rgba(0, 0, 0, 0.85)";
-    websiteHeader.style.borderRadius = "8px";
-    websiteHeader.style.color = "white";
-    websiteHeader.style.fontFamily = "sans-serif";
-    websiteHeader.style.pointerEvents = "none";
-
-    const mainTitle = document.createElement("h1");
-    mainTitle.textContent = "Heritage Iraq";
-    mainTitle.style.margin = "0";
-    mainTitle.style.fontSize = "32px";
-    mainTitle.style.fontWeight = "bold";
-    mainTitle.style.letterSpacing = "0.5px";
-    websiteHeader.appendChild(mainTitle);
-
-    const subtitle = document.createElement("p");
-    subtitle.textContent = "A 3D Interactive Heritage Experience";
-    subtitle.style.margin = "4px 0 0 0";
-    subtitle.style.fontSize = "14px";
-    subtitle.style.fontWeight = "300";
-    subtitle.style.opacity = "0.9";
-    subtitle.style.letterSpacing = "0.3px";
-    websiteHeader.appendChild(subtitle);
-
+    const websiteHeader = document.createElement("website-header");
     leftContainer.appendChild(websiteHeader);
 
     // Create info panel (left side)

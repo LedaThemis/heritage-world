@@ -1,6 +1,7 @@
 // TODO: Side panel: Implement "see more" instead of scrollbar
 // TODO: Make side panel a grid
 import "./ui/components/website-header";
+import "./ui/components/info-panel";
 
 import {
     Engine,
@@ -1224,53 +1225,8 @@ const createMapScene = async () => {
 
     const websiteHeader = document.createElement("website-header");
     leftContainer.appendChild(websiteHeader);
-
-    // Create info panel (left side)
-    const infoPanel = document.createElement("div");
-    infoPanel.style.width = "350px";
-    infoPanel.style.maxHeight = "calc(100vh - 200px)";
-    infoPanel.style.overflowY = "auto";
-    infoPanel.style.background = "rgba(0, 0, 0, 0.85)";
-    infoPanel.style.borderRadius = "12px";
-    infoPanel.style.padding = "20px";
-    infoPanel.style.color = "white";
-    infoPanel.style.fontFamily = "sans-serif";
+    const infoPanel = document.createElement("info-panel");
     leftContainer.appendChild(infoPanel);
-
-    // Info panel header
-    const infoPanelHeader = document.createElement("h2");
-    infoPanelHeader.textContent = "About";
-    infoPanelHeader.style.margin = "0 0 16px 0";
-    infoPanelHeader.style.fontSize = "24px";
-    infoPanelHeader.style.fontWeight = "bold";
-    infoPanel.appendChild(infoPanelHeader);
-
-    // Info panel content
-    const infoContent = document.createElement("p");
-    infoContent.textContent =
-        "Explore Iraq's rich cultural heritage through this immersive 3D experience. Navigate through historic sites, ancient cities, and natural wonders that have shaped the cradle of civilization for millennia.";
-    infoContent.style.margin = "0 0 20px 0";
-    infoContent.style.fontSize = "14px";
-    infoContent.style.lineHeight = "1.6";
-    infoContent.style.color = "rgba(255, 255, 255, 0.9)";
-    infoPanel.appendChild(infoContent);
-
-    const creditsLink = document.createElement("a");
-    creditsLink.textContent = "Learn more →";
-    creditsLink.href = "/credits.html";
-    creditsLink.style.color = "#60a5fa";
-    creditsLink.style.fontSize = "13px";
-    creditsLink.style.textDecoration = "none";
-    creditsLink.style.fontWeight = "500";
-    creditsLink.style.transition = "color 0.2s ease";
-    creditsLink.style.pointerEvents = "auto";
-    creditsLink.addEventListener("mouseenter", () => {
-        creditsLink.style.color = "#93c5fd";
-    });
-    creditsLink.addEventListener("mouseleave", () => {
-        creditsLink.style.color = "#60a5fa";
-    });
-    infoPanel.appendChild(creditsLink);
 
     // Create header with tip
     const headerTip = document.createElement("div");

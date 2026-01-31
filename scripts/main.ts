@@ -1186,15 +1186,21 @@ const createMapScene = async () => {
     const scene = setupScene(engine);
     scene.collisionsEnabled = false;
 
-    const camera = new ArcRotateCamera("map_camera", -Math.PI / 2, Math.PI / 3, 60, Vector3.Zero(), scene);
+    const camera = new ArcRotateCamera("map_camera", -Math.PI / 2, Math.PI / 3.5, 60, Vector3.Zero(), scene);
     camera.lowerBetaLimit = Math.PI / 6;
-    camera.upperBetaLimit = Math.PI / 2.2;
+    camera.upperBetaLimit = Math.PI / 2.5;
     camera.lowerRadiusLimit = 20;
-    camera.upperRadiusLimit = 80;
+    camera.upperRadiusLimit = 60;
     camera.attachControl(canvas, true);
+    camera.useAutoRotationBehavior = true;
+    if (camera.autoRotationBehavior) {
+        camera.autoRotationBehavior.idleRotationSpeed = 0.05;
+        camera.autoRotationBehavior.idleRotationWaitTime = 1000;
+        camera.autoRotationBehavior.zoomStopsAnimation = true;
+    }
 
     setupLight(scene);
-    scene.clearColor = new Color4(220 / 255, 220 / 255, 220 / 255, 1);
+    scene.clearColor = new Color4(179 / 255, 183 / 255, 181 / 255, 1);
 
     // Enable ambient occlusion
     const ssao = new SSAO2RenderingPipeline("ssao", scene, 1);
@@ -1696,7 +1702,7 @@ const createMapScene = async () => {
 
     // Size configuration - larger particles for wall effect
     fogWallParticleSystem.minSize = 5;
-    fogWallParticleSystem.maxSize = 8;
+    fogWallParticleSystem.maxSize = 8 * 2;
 
     // Lifetime - persistent fog
     fogWallParticleSystem.minLifeTime = Number.MAX_SAFE_INTEGER;

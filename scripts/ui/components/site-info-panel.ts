@@ -226,3 +226,9 @@ export class SiteInfoPanel extends LitElement {
         `;
     }
 }
+
+declare global {
+    interface HTMLElementTagNameMap {
+        "site-info-panel": SiteInfoPanel;
+    }
+}

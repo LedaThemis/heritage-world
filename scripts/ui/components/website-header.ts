@@ -36,3 +36,9 @@ export class WebsiteHeader extends LitElement {
         `;
     }
 }
+
+declare global {
+    interface HTMLElementTagNameMap {
+        "website-header": WebsiteHeader;
+    }
+}

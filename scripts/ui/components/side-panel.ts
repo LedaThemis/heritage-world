@@ -47,3 +47,9 @@ export class SidePanel extends LitElement {
         `;
     }
 }
+
+declare global {
+    interface HTMLElementTagNameMap {
+        "side-panel": SidePanel;
+    }
+}

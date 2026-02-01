@@ -59,3 +59,9 @@ export class InfoPanel extends LitElement {
         `;
     }
 }
+
+declare global {
+    interface HTMLElementTagNameMap {
+        "info-panel": InfoPanel;
+    }
+}

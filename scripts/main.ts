@@ -2,6 +2,7 @@
 // TODO: Make side panel a grid
 import "./ui/components/website-header";
 import "./ui/components/info-panel";
+import "./ui/components/side-panel";
 
 import {
     Engine,
@@ -1229,48 +1230,8 @@ const createMapScene = async () => {
     leftContainer.appendChild(infoPanel);
 
     // Create side panel
-    const sidePanel = document.createElement("div");
-    sidePanel.style.width = "350px";
-    sidePanel.style.maxHeight = "calc(60vh - 40px - 40px)";
-    sidePanel.style.overflowY = "auto";
-    sidePanel.style.background = "rgba(0, 0, 0, 0.85)";
-    sidePanel.style.borderRadius = "12px";
-    sidePanel.style.padding = "20px";
-    sidePanel.style.color = "white";
-    sidePanel.style.fontFamily = "sans-serif";
-
-    // Custom scrollbar styling
-    const style = document.createElement("style");
-    style.textContent = `
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.5);
-        }
-    `;
-    document.head.appendChild(style);
-    sidePanel.classList.add("custom-scrollbar");
-
+    const sidePanel = document.createElement("side-panel");
     leftContainer.appendChild(sidePanel);
-
-    // Panel header
-    const panelHeader = document.createElement("h2");
-    panelHeader.textContent = "Heritage Sites";
-    panelHeader.style.position = "relative";
-    panelHeader.style.top = "0";
-    panelHeader.style.margin = "0 0 16px 0";
-    panelHeader.style.fontSize = "24px";
-    panelHeader.style.fontWeight = "bold";
-    sidePanel.appendChild(panelHeader);
 
     // Create right panel for site details (hidden by default)
     const experienceContainer = document.createElement("div");

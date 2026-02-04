@@ -14,7 +14,6 @@ import {
     MeshBuilder,
     ArcRotateCamera,
     PointerEventTypes,
-    HavokPlugin,
     UniversalCamera,
     StandardMaterial,
     CubeTexture,
@@ -34,7 +33,6 @@ import {
     CylinderParticleEmitter,
     GPUParticleSystem,
 } from "@babylonjs/core";
-import HavokPhysics from "@babylonjs/havok";
 import { Client, getStateCallbacks, Room } from "colyseus.js";
 import { registerBuiltInLoaders } from "@babylonjs/loaders/dynamic";
 import type { PlayerRoomType, HeritageSite } from "./types";
@@ -809,11 +807,6 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
 
 const createScene = async function (nickname: string, worldModelPath?: string | null) {
     const scene = setupScene(engine);
-
-    const gravityVector = new Vector3(0, -9.81, 0);
-    const havokInstance = await HavokPhysics();
-    const physicsPlugin = new HavokPlugin(true, havokInstance);
-    scene.enablePhysics(gravityVector, physicsPlugin);
 
     // Create connection status header
     const statusHeader = document.createElement("div");

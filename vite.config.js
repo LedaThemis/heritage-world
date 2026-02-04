@@ -3,6 +3,7 @@ import { visualizer } from "rollup-plugin-visualizer";
 import { resolve } from "path";
 
 export default defineConfig({
+    base: "./",
     server: {
         allowedHosts: ["alqaba.a.pinggy.link"],
     },

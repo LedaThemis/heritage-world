@@ -45,6 +45,23 @@ if (!canvas) {
     throw new Error("Canvas element not found.");
 }
 
+// Default
+let LOAD_SITE_ON_START: string | null = null;
+let USE_OFFLINE: boolean = false;
+let SHOW_STATUS_HEADER: boolean = true;
+let SHOW_MENU_BUTTON: boolean = true;
+let SHOW_EMOTES_BUTTON: boolean = true;
+let SHOW_FPS: boolean = import.meta.env.DEV;
+
+if (import.meta.env.VITE_IS_OFFLINE_SINGLE_SITE === "true") {
+    LOAD_SITE_ON_START = "1";
+    USE_OFFLINE = true;
+    SHOW_STATUS_HEADER = false;
+    SHOW_MENU_BUTTON = false;
+    SHOW_EMOTES_BUTTON = false;
+    SHOW_FPS = import.meta.env.DEV;
+}
+
 const GND_WIDTH = 50;
 const GND_HEIGHT = 50;
 const PLAYER_HEIGHT = 2;
@@ -52,6 +69,65 @@ const PLAYER_WIDTH = 1;
 
 const ADJECTIVES = ["Brave", "Swift", "Clever", "Gentle", "Lucky", "Nimble", "Calm", "Bright"];
 const ANIMALS = ["Fox", "Otter", "Panda", "Hawk", "Wolf", "Dolphin", "Lynx", "Koala"];
+
+const SITES: HeritageSite[] = [
+    {
+        id: "1",
+        name: "Hosh Al-Bay'ah Collection",
+        position: new Vector3(-15, 1, 15),
+        description: "A historic collection showcasing traditional architecture and cultural heritage of the region.",
+        thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
+        worldModelPath: "./assets/models/al-tahira-world.glb",
+        websiteUrl: "https://alqaba.com/al-tahira-church",
+        virtualWalkthroughUrl: "https://www.alqaba.com/al-tahira-church/walkthrough",
+        sketchfabUrl:
+            "https://sketchfab.com/HusseinYaseen/collections/hosh-al-bayaah-churchs-67ed28d04539400b87073ef37b3218d8",
+    },
+    {
+        id: "2",
+        name: "Old City of Mosul",
+        position: new Vector3(-12, 1, 11),
+        description: "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
+        thumbnailPath: "./assets/sites/mosul.webp",
+        virtualWalkthroughUrl: "https://www.alqaba.com/old-town/walkthrough",
+        websiteUrl: "https://www.alqaba.com/old-town",
+    },
+    {
+        id: "3",
+        name: "Erbil Citadel",
+        position: new Vector3(-7.5, 1, 12.5),
+        description: "One of the oldest continuously inhabited settlements in the world, a UNESCO World Heritage site.",
+        thumbnailPath: "./assets/sites/erbil.png",
+    },
+    {
+        id: "4",
+        name: "Baghdad Museum",
+        position: new Vector3(-1.5, 1, -1),
+        description: "Home to priceless artifacts from Mesopotamian civilizations and Iraq's rich cultural history.",
+        thumbnailPath: "./assets/sites/baghdad-museum.webp",
+        sketchfabUrl: "https://sketchfab.com/HusseinYaseen/collections/iraqi-museum-b2f69baa92d84b50a90711d5db7d7f18",
+    },
+    {
+        id: "5",
+        name: "Uruk City",
+        position: new Vector3(0, 1, -15),
+        description: "Ancient Sumerian city-state, birthplace of writing and one of the world's first great cities.",
+        thumbnailPath: "./assets/sites/uruk.jpg",
+        sketchfabUrl: "https://sketchfab.com/HusseinYaseen/collections/uruk-city-0281a1d074b74daf937ccd853b9ec4fc",
+    },
+    {
+        id: "6",
+        name: "Al-Chibayish Marshlands",
+        position: new Vector3(15, 1, -19),
+        description: "Unique wetland ecosystem, home to the Marsh Arabs and diverse wildlife in southern Iraq.",
+        thumbnailPath: "./assets/sites/marshlands.png",
+        modelPath: "./assets/models/mudhif.glb",
+        websiteUrl: "https://alqaba.com/iraq-marshes",
+        virtualWalkthroughUrl: "https://www.alqaba.com/iraq-marshes/walkthrough",
+        sketchfabUrl:
+            "https://sketchfab.com/HusseinYaseen/collections/al-chibayish-marshes-b57822cc6dee4a698669e1e08c1e1f4b",
+    },
+];
 
 let allowedEmotes: string[] = [];
 
@@ -100,6 +176,7 @@ const createPlayerMesh = function (scene: Scene) {
         scene
     );
     playerMesh.position = new Vector3(0, PLAYER_HEIGHT / 2, 0);
+    playerMesh.rotation = new Vector3(0, Math.PI, 0);
 
     // Make player mesh transparent
     const playerMaterial = new StandardMaterial("player_mat", scene);
@@ -755,7 +832,7 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
     statusHeader.style.display = "flex";
     statusHeader.style.alignItems = "center";
     statusHeader.style.gap = "12px";
-    document.body.appendChild(statusHeader);
+    if (SHOW_STATUS_HEADER) document.body.appendChild(statusHeader);
 
     let currentPlayerCount = 0;
 
@@ -775,144 +852,151 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
 
     const client = new Client(import.meta.env.VITE_SERVER_URL);
     let room: Room | null;
-    try {
-        room = await client.joinOrCreate("central", { nickname, siteId: selectedSite?.id || "map" });
-        currentPlayerSessionId = room.sessionId;
-        room.send("setName", { name: nickname });
-        const $ = getStateCallbacks<PlayerRoomType>(room);
 
-        // Request player count and setup periodic updates
-        const requestPlayerCount = () => {
-            room?.send("getPlayerCount");
-        };
+    if (!USE_OFFLINE) {
+        try {
+            room = await client.joinOrCreate("central", { nickname, siteId: selectedSite?.id || "map" });
+            currentPlayerSessionId = room.sessionId;
+            room.send("setName", { name: nickname });
+            const $ = getStateCallbacks<PlayerRoomType>(room);
 
-        room.onMessage("playerCount", (message: { count: number }) => {
-            updateStatus("ONLINE", message.count);
-        });
+            // Request player count and setup periodic updates
+            const requestPlayerCount = () => {
+                room?.send("getPlayerCount");
+            };
 
-        // Request and listen for allowed emotes
-        room.send("getAllowedEmotes");
-        room.onMessage("allowedEmotes", (message: { emotes: string[] }) => {
-            allowedEmotes = message.emotes;
-        });
+            room.onMessage("playerCount", (message: { count: number }) => {
+                updateStatus("ONLINE", message.count);
+            });
 
-        // Listen for player emotes
-        room.onMessage("playerEmote", (message: { sessionId: string; emote: string }) => {
-            // Don't show own emote again (already shown locally)
-            if (message.sessionId === room?.sessionId) return;
+            // Request and listen for allowed emotes
+            room.send("getAllowedEmotes");
+            room.onMessage("allowedEmotes", (message: { emotes: string[] }) => {
+                allowedEmotes = message.emotes;
+            });
 
-            const entity = playerEntities[message.sessionId];
-            if (entity) {
-                showEmote(message.sessionId, message.emote, scene, entity);
-            }
-        });
+            // Listen for player emotes
+            room.onMessage("playerEmote", (message: { sessionId: string; emote: string }) => {
+                // Don't show own emote again (already shown locally)
+                if (message.sessionId === room?.sessionId) return;
 
-        // Initial player count request
-        requestPlayerCount();
-
-        // Update player count every 5 seconds
-        const playerCountInterval = setInterval(() => {
-            if (room?.connection.isOpen) {
-                requestPlayerCount();
-            }
-        }, 5000);
-
-        // Update status to online when connected
-        updateStatus("ONLINE");
-
-        // Listen for disconnect events
-        room.onLeave((code) => {
-            console.log("Disconnected from server:", code);
-            clearInterval(playerCountInterval);
-            updateStatus("OFFLINE");
-        });
-
-        room.onError((code, message) => {
-            console.error("Room error:", code, message);
-            if (playerCountInterval) clearInterval(playerCountInterval);
-            updateStatus("OFFLINE");
-        });
-
-        $(room.state).players.onAdd(async (player, sessionId) => {
-            const isCurrentPlayer = sessionId === room?.sessionId;
-
-            // create player Sphere
-            if (isCurrentPlayer) {
-                playerMesh.position.set(player.x, player.y, player.z);
-            } else {
-                // Load eva.gltf model for remote players
-                const modelData = await ImportMeshAsync("./assets/models/eva.glb", scene);
-                const rootMesh = modelData.meshes[0];
-
-                modelData.animationGroups.forEach((animationGroup) => {
-                    animationGroup.stop();
-                });
-
-                // Create parent container for positioning
-                const remotePlayerContainer = new TransformNode(`player-${sessionId}`, scene);
-                remotePlayerContainer.position.set(player.x, player.y, player.z);
-                remotePlayerContainer.scaling = new Vector3(1, 1, 1);
-
-                // Parent all meshes to the container
-                modelData.meshes.forEach((mesh) => {
-                    if (mesh.parent === null) {
-                        mesh.parent = remotePlayerContainer;
-                    }
-                    mesh.isPickable = false;
-                });
-
-                playerEntities[sessionId] = remotePlayerContainer;
-                playerNextPosition[sessionId] = remotePlayerContainer.position.clone();
-                playerNextRotation[sessionId] = remotePlayerContainer.rotationQuaternion || Quaternion.Identity();
-
-                const label = createNameLabel(player.name ?? "Player", scene);
-                label.parent = remotePlayerContainer;
-                playerLabels[sessionId] = label;
-            }
-
-            $(player).onChange(function () {
-                if (isCurrentPlayer) {
-                } else {
-                    playerNextPosition[sessionId].set(player.x, player.y, player.z);
-                    if (
-                        player.rotX !== undefined &&
-                        player.rotY !== undefined &&
-                        player.rotZ !== undefined &&
-                        player.rotW !== undefined
-                    ) {
-                        playerNextRotation[sessionId] = new Quaternion(
-                            player.rotX,
-                            player.rotY,
-                            player.rotZ,
-                            player.rotW
-                        );
-                    }
-                    if (player.name) {
-                        updateNameLabel(playerLabels[sessionId], player.name);
-                    }
+                const entity = playerEntities[message.sessionId];
+                if (entity) {
+                    showEmote(message.sessionId, message.emote, scene, entity);
                 }
             });
-        });
 
-        $(room.state).players.onRemove(function (player, sessionId) {
-            playerEntities[sessionId].dispose();
-            delete playerEntities[sessionId];
-            delete playerNextRotation[sessionId];
-            playerLabels[sessionId]?.dispose();
-            delete playerLabels[sessionId];
+            // Initial player count request
+            requestPlayerCount();
 
-            // Clean up emote bubble and timeout
-            if (playerEmoteTimeouts[sessionId]) {
-                clearTimeout(playerEmoteTimeouts[sessionId]);
-                delete playerEmoteTimeouts[sessionId];
-            }
-            if (playerEmotes[sessionId]) {
-                playerEmotes[sessionId].dispose();
-                delete playerEmotes[sessionId];
-            }
-        });
-    } catch (error) {
-        console.error("Room error:", error);
+            // Update player count every 5 seconds
+            const playerCountInterval = setInterval(() => {
+                if (room?.connection.isOpen) {
+                    requestPlayerCount();
+                }
+            }, 5000);
+
+            // Update status to online when connected
+            updateStatus("ONLINE");
+
+            // Listen for disconnect events
+            room.onLeave((code) => {
+                console.log("Disconnected from server:", code);
+                clearInterval(playerCountInterval);
+                updateStatus("OFFLINE");
+            });
+
+            room.onError((code, message) => {
+                console.error("Room error:", code, message);
+                if (playerCountInterval) clearInterval(playerCountInterval);
+                updateStatus("OFFLINE");
+            });
+
+            $(room.state).players.onAdd(async (player, sessionId) => {
+                const isCurrentPlayer = sessionId === room?.sessionId;
+
+                // create player Sphere
+                if (isCurrentPlayer) {
+                    playerMesh.position.set(player.x, player.y, player.z);
+                } else {
+                    // Load eva.gltf model for remote players
+                    const modelData = await ImportMeshAsync("./assets/models/eva.glb", scene);
+                    const rootMesh = modelData.meshes[0];
+
+                    modelData.animationGroups.forEach((animationGroup) => {
+                        animationGroup.stop();
+                    });
+
+                    // Create parent container for positioning
+                    const remotePlayerContainer = new TransformNode(`player-${sessionId}`, scene);
+                    remotePlayerContainer.position.set(player.x, player.y, player.z);
+                    remotePlayerContainer.scaling = new Vector3(1, 1, 1);
+
+                    // Parent all meshes to the container
+                    modelData.meshes.forEach((mesh) => {
+                        if (mesh.parent === null) {
+                            mesh.parent = remotePlayerContainer;
+                        }
+                        mesh.isPickable = false;
+                    });
+
+                    playerEntities[sessionId] = remotePlayerContainer;
+                    playerNextPosition[sessionId] = remotePlayerContainer.position.clone();
+                    playerNextRotation[sessionId] = remotePlayerContainer.rotationQuaternion || Quaternion.Identity();
+
+                    const label = createNameLabel(player.name ?? "Player", scene);
+                    label.parent = remotePlayerContainer;
+                    playerLabels[sessionId] = label;
+                }
+
+                $(player).onChange(function () {
+                    if (isCurrentPlayer) {
+                    } else {
+                        playerNextPosition[sessionId].set(player.x, player.y, player.z);
+                        if (
+                            player.rotX !== undefined &&
+                            player.rotY !== undefined &&
+                            player.rotZ !== undefined &&
+                            player.rotW !== undefined
+                        ) {
+                            playerNextRotation[sessionId] = new Quaternion(
+                                player.rotX,
+                                player.rotY,
+                                player.rotZ,
+                                player.rotW
+                            );
+                        }
+                        if (player.name) {
+                            updateNameLabel(playerLabels[sessionId], player.name);
+                        }
+                    }
+                });
+            });
+
+            $(room.state).players.onRemove(function (player, sessionId) {
+                playerEntities[sessionId].dispose();
+                delete playerEntities[sessionId];
+                delete playerNextRotation[sessionId];
+                playerLabels[sessionId]?.dispose();
+                delete playerLabels[sessionId];
+
+                // Clean up emote bubble and timeout
+                if (playerEmoteTimeouts[sessionId]) {
+                    clearTimeout(playerEmoteTimeouts[sessionId]);
+                    delete playerEmoteTimeouts[sessionId];
+                }
+                if (playerEmotes[sessionId]) {
+                    playerEmotes[sessionId].dispose();
+                    delete playerEmotes[sessionId];
+                }
+            });
+        } catch (error) {
+            console.error("Room error:", error);
+            updateStatus("OFFLINE");
+        }
+    } else {
+        // Offline mode - set default emotes and update status
+        allowedEmotes = ["😊", "👍", "❤️", "😂", "😮", "👋", "🎉", "🤔", "😎"];
         updateStatus("OFFLINE");
     }
 
@@ -960,7 +1044,7 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
         menuButton.style.borderColor = "rgba(255, 255, 255, 0.3)";
     });
     menuButton.addEventListener("click", toggleGameMenu);
-    leftContainer.appendChild(menuButton);
+    if (SHOW_MENU_BUTTON) leftContainer.appendChild(menuButton);
 
     // Create emotes button
     const emotesButton = document.createElement("button");
@@ -1088,7 +1172,7 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
     };
 
     emotesButton.addEventListener("click", toggleEmotesPanel);
-    leftContainer.appendChild(emotesButton);
+    if (SHOW_EMOTES_BUTTON) leftContainer.appendChild(emotesButton);
 
     // Add keyboard shortcut for emotes panel (E key)
     window.addEventListener("keydown", (e) => {
@@ -1209,7 +1293,7 @@ const createMapScene = async () => {
     const experienceContainer = document.createElement("site-info-panel");
     experienceContainer.onStartExperience = async () => {
         if (currentFocusedSite) {
-            selectedSite = sites.find((s) => s.id === currentFocusedSite) || null;
+            selectedSite = SITES.find((s) => s.id === currentFocusedSite) || null;
 
             // Clean up map scene UI
             infoPanel.remove();
@@ -1386,73 +1470,8 @@ const createMapScene = async () => {
     // Start the fog wall
     fogWallParticleSystem.start();
 
-    const sites: HeritageSite[] = [
-        {
-            id: "1",
-            name: "Hosh Al-Bay'ah Collection",
-            position: new Vector3(-15, 1, 15),
-            description:
-                "A historic collection showcasing traditional architecture and cultural heritage of the region.",
-            thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
-            worldModelPath: "./assets/models/al-tahira-world.glb",
-            websiteUrl: "https://alqaba.com/al-tahira-church",
-            virtualWalkthroughUrl: "https://www.alqaba.com/al-tahira-church/walkthrough",
-            sketchfabUrl:
-                "https://sketchfab.com/HusseinYaseen/collections/hosh-al-bayaah-churchs-67ed28d04539400b87073ef37b3218d8",
-        },
-        {
-            id: "2",
-            name: "Old City of Mosul",
-            position: new Vector3(-12, 1, 11),
-            description:
-                "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
-            thumbnailPath: "./assets/sites/mosul.webp",
-            virtualWalkthroughUrl: "https://www.alqaba.com/old-town/walkthrough",
-            websiteUrl: "https://www.alqaba.com/old-town",
-        },
-        {
-            id: "3",
-            name: "Erbil Citadel",
-            position: new Vector3(-7.5, 1, 12.5),
-            description:
-                "One of the oldest continuously inhabited settlements in the world, a UNESCO World Heritage site.",
-            thumbnailPath: "./assets/sites/erbil.png",
-        },
-        {
-            id: "4",
-            name: "Baghdad Museum",
-            position: new Vector3(-1.5, 1, -1),
-            description:
-                "Home to priceless artifacts from Mesopotamian civilizations and Iraq's rich cultural history.",
-            thumbnailPath: "./assets/sites/baghdad-museum.webp",
-            sketchfabUrl:
-                "https://sketchfab.com/HusseinYaseen/collections/iraqi-museum-b2f69baa92d84b50a90711d5db7d7f18",
-        },
-        {
-            id: "5",
-            name: "Uruk City",
-            position: new Vector3(0, 1, -15),
-            description:
-                "Ancient Sumerian city-state, birthplace of writing and one of the world's first great cities.",
-            thumbnailPath: "./assets/sites/uruk.jpg",
-            sketchfabUrl: "https://sketchfab.com/HusseinYaseen/collections/uruk-city-0281a1d074b74daf937ccd853b9ec4fc",
-        },
-        {
-            id: "6",
-            name: "Al-Chibayish Marshlands",
-            position: new Vector3(15, 1, -19),
-            description: "Unique wetland ecosystem, home to the Marsh Arabs and diverse wildlife in southern Iraq.",
-            thumbnailPath: "./assets/sites/marshlands.png",
-            modelPath: "./assets/models/mudhif.glb",
-            websiteUrl: "https://alqaba.com/iraq-marshes",
-            virtualWalkthroughUrl: "https://www.alqaba.com/iraq-marshes/walkthrough",
-            sketchfabUrl:
-                "https://sketchfab.com/HusseinYaseen/collections/al-chibayish-marshes-b57822cc6dee4a698669e1e08c1e1f4b",
-        },
-    ];
-
     // Populate side panel with sites
-    sites.forEach((site) => {
+    SITES.forEach((site) => {
         const siteCard = document.createElement("div");
         siteCard.style.background = "rgba(255, 255, 255, 0.1)";
         siteCard.style.borderRadius = "8px";
@@ -1533,7 +1552,7 @@ const createMapScene = async () => {
         sidePanel.appendChild(siteCard);
     });
 
-    sites.forEach(async (site) => {
+    SITES.forEach(async (site) => {
         // Create invisible clickable box for all sites (for detecting clicks)
         const clickBox = MeshBuilder.CreateBox(`site-${site.id}`, { size: 2 }, scene);
         clickBox.position.copyFrom(site.position);
@@ -1591,7 +1610,7 @@ const createMapScene = async () => {
             currentFocusedSite = target;
 
             // Find and display site description
-            const siteData = sites.find((s) => s.id === target);
+            const siteData = SITES.find((s) => s.id === target);
             if (siteData) {
                 // Populate panel with site data
                 updatePanelWithSite(siteData);
@@ -1644,11 +1663,30 @@ const startGame = async (nickname: string) => {
 };
 
 registerBuiltInLoaders();
-activeScene = await createMapScene();
+if (LOAD_SITE_ON_START === null) {
+    activeScene = await createMapScene();
+} else {
+    selectedSite = SITES.find((s) => s.id === LOAD_SITE_ON_START) || null;
+
+    if (selectedSite) {
+        // Clean up map scene UI elements
+        const leftContainer = document.querySelector('[data-ui-container="left"]');
+        leftContainer?.remove();
+        const experienceContainer = document.querySelector("site-info-panel");
+        experienceContainer?.remove();
+
+        // Dispose the map scene
+        activeScene?.dispose();
+
+        // Start game with randomly generated name
+        const nickname = generateFriendlyName();
+        activeScene = await createScene(nickname, selectedSite.worldModelPath);
+    }
+}
 
 // Create FPS counter for debugging (only in dev mode)
 let fpsDisplay: HTMLDivElement | null = null;
-if (import.meta.env.DEV) {
+if (SHOW_FPS) {
     fpsDisplay = document.createElement("div");
     fpsDisplay.style.position = "fixed";
     fpsDisplay.style.top = "60px";

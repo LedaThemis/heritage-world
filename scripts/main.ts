@@ -307,7 +307,6 @@ const createPlayerMesh = function (scene: Scene) {
         scene
     );
     playerMesh.position = new Vector3(0, PLAYER_HEIGHT / 2, 0);
-    playerMesh.rotation = new Vector3(0, Math.PI, 0);
 
     // Make player mesh transparent
     const playerMaterial = new StandardMaterial("player_mat", scene);

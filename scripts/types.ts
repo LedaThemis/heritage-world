@@ -24,4 +24,5 @@ export interface HeritageSite {
     websiteUrl?: string;
     virtualWalkthroughUrl?: string;
     sketchfabUrl?: string;
+    worldObjects?: { id: string; modelPath: string; position: Vector3; rotation: Vector3; scaling: Vector3 }[];
 }

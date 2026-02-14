@@ -52,7 +52,7 @@ let SHOW_EMOTES_BUTTON: boolean = true;
 let SHOW_FPS: boolean = import.meta.env.DEV;
 
 if (import.meta.env.VITE_IS_OFFLINE_SINGLE_SITE === "true") {
-    LOAD_SITE_ON_START = "1";
+    LOAD_SITE_ON_START = "SINGLE-SCENE";
     USE_OFFLINE = true;
     SHOW_STATUS_HEADER = false;
     SHOW_MENU_BUTTON = false;
@@ -69,6 +69,139 @@ const ADJECTIVES = ["Brave", "Swift", "Clever", "Gentle", "Lucky", "Nimble", "Ca
 const ANIMALS = ["Fox", "Otter", "Panda", "Hawk", "Wolf", "Dolphin", "Lynx", "Koala"];
 
 const SITES: HeritageSite[] = [
+    ...(import.meta.env.VITE_IS_OFFLINE_SINGLE_SITE === "true"
+        ? [
+              {
+                  id: "SINGLE-SCENE",
+                  name: "Single Scene",
+                  position: new Vector3(-15, 1, 15),
+                  description: "A single scene for auto-loading the world without need for user interaction",
+                  thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
+                  worldModelPath: "./assets/models/al-tahira-world.glb",
+                  worldObjects: [
+                      {
+                          id: "pot",
+                          modelPath: "./assets/models/museum-models/pot.glb",
+                          position: new Vector3(4.25, -0.75, -20.25),
+                          rotation: new Vector3(-Math.PI / 2, Math.PI / 2, 0),
+                          scaling: new Vector3(0.1, 0.1, 0.1),
+                      },
+                      {
+                          id: "column_base",
+                          modelPath: "./assets/models/museum-models/column_base.glb",
+                          position: new Vector3(-4.25, -0.8, -20.1),
+                          rotation: new Vector3(-Math.PI / 2, 0, 0),
+                          scaling: new Vector3(0.1, 0.1, 0.1),
+                      },
+                      {
+                          id: "three_humans",
+                          modelPath: "./assets/models/museum-models/three_humans.glb",
+                          position: new Vector3(-20.45, 0.5, -2.2),
+                          rotation: new Vector3(Math.PI / 2, (3 * Math.PI) / 2, 0),
+                          scaling: new Vector3(0.25, 0.25, 0.25),
+                      },
+                      {
+                          id: "black_rock",
+                          modelPath: "./assets/models/museum-models/black_rock.glb",
+                          position: new Vector3(-17.75, 0.5, -10.5),
+                          rotation: new Vector3(Math.PI / 2, 0, 0),
+                          scaling: new Vector3(0.25, 0.25, 0.25),
+                      },
+                      {
+                          id: "stone_tablet_i",
+                          modelPath: "./assets/models/museum-models/stone_tablet_i.glb",
+                          position: new Vector3(-15, 0, 13.25),
+                          rotation: new Vector3(-Math.PI / 2, Math.PI / 4, 0),
+                          scaling: new Vector3(0.075, 0.075, 0.075),
+                      },
+                      {
+                          id: "stone_tablet_ii",
+                          modelPath: "./assets/models/museum-models/stone_tablet_ii.glb",
+                          position: new Vector3(-8.05, 0.15, 17.95),
+                          rotation: new Vector3(-Math.PI / 2, (70 / 360) * 2 * Math.PI, 0),
+                          scaling: new Vector3(0.2, 0.2, 0.2),
+                      },
+                      {
+                          id: "stone_tablet_iii",
+                          modelPath: "./assets/models/museum-models/stone_tablet_iii.glb",
+                          position: new Vector3(8.25, 0.05, 18.22),
+                          rotation: new Vector3(-Math.PI / 2, (200 / 360) * (2 * Math.PI), 0),
+                          scaling: new Vector3(0.2, 0.2, 0.2),
+                      },
+                      {
+                          id: "stone_tablet_iv",
+                          modelPath: "./assets/models/museum-models/stone_tablet_iv.glb",
+                          position: new Vector3(15, -0.075, 13.5),
+                          rotation: new Vector3(-Math.PI / 2, (320 / 360) * 2 * Math.PI, 0),
+                          scaling: new Vector3(0.25, 0.25, 0.25),
+                      },
+                      {
+                          id: "church_grand_door",
+                          modelPath: "./assets/models/museum-models/church_grand_door.glb",
+                          position: new Vector3(0, 4.718, 19.701),
+                          rotation: new Vector3(-Math.PI / 2, 0, 0),
+                          scaling: new Vector3(1, 1, 1),
+                      },
+                      {
+                          id: "clay_pot",
+                          modelPath: "./assets/models/museum-models/clay_pot.glb",
+                          position: new Vector3(17.75, -1.35, -10.5),
+                          rotation: new Vector3(-Math.PI / 2, Math.PI, 0),
+                          scaling: new Vector3(0.2, 0.2, 0.2),
+                      },
+                      {
+                          id: "human_skull_ii",
+                          modelPath: "./assets/models/museum-models/human_skull_ii.glb",
+                          position: new Vector3(20.25, -1.17, -2.4),
+                          rotation: new Vector3(-Math.PI / 2, (290 / 360) * (2 * Math.PI), 0),
+                          scaling: new Vector3(0.05, 0.05, 0.05),
+                      },
+                      {
+                          id: "rusted_sword",
+                          modelPath: "./assets/models/museum-models/rusted_sword.glb",
+                          position: new Vector3(7.73, -1.42, -7.21),
+                          rotation: new Vector3(-Math.PI / 2, (135 / 360) * (2 * Math.PI), 0),
+                          scaling: new Vector3(0.09, 0.09, 0.09),
+                      },
+                      {
+                          id: "wooden_cup",
+                          modelPath: "./assets/models/museum-models/wooden_cup.glb",
+                          position: new Vector3(10.37, -1.26, 0.95),
+                          rotation: new Vector3(-Math.PI / 2, (83.6 / 360) * (2 * Math.PI), 0),
+                          scaling: new Vector3(0.05, 0.05, 0.05),
+                      },
+                      {
+                          id: "skeleton",
+                          modelPath: "./assets/models/museum-models/skeleton.glb",
+                          position: new Vector3(-7.76, -1.02, -7.15),
+                          rotation: new Vector3(-Math.PI / 2, (320 / 360) * (2 * Math.PI), 0),
+                          scaling: new Vector3(0.075, 0.075, 0.075),
+                      },
+                      {
+                          id: "clay_bowl",
+                          modelPath: "./assets/models/museum-models/clay_bowl.glb",
+                          position: new Vector3(6.05, -1.08, 8.12),
+                          rotation: new Vector3(-Math.PI / 2, 0, 0),
+                          scaling: new Vector3(0.04, 0.04, 0.04),
+                      },
+                      {
+                          id: "log_container",
+                          modelPath: "./assets/models/museum-models/log_container.glb",
+                          position: new Vector3(-6.1, -1.17, 8.23),
+                          rotation: new Vector3(-Math.PI / 2, (131 / 360) * (2 * Math.PI), 0),
+                          scaling: new Vector3(0.1, 0.1, 0.1),
+                      },
+                      {
+                          id: "fishing_net",
+                          modelPath: "./assets/models/museum-models/fishing_net.glb",
+                          position: new Vector3(-10.35, -1.18, 1.01),
+                          rotation: new Vector3(-Math.PI / 2, (-88 / 360) * (2 * Math.PI), 0),
+                          scaling: new Vector3(0.07, 0.07, 0.07),
+                      },
+                  ],
+              },
+          ]
+        : []),
     {
         id: "1",
         name: "Hosh Al-Bay'ah Collection",
@@ -1211,6 +1344,45 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
 
         ground = worldParent;
         // ground.checkCollisions = true;
+
+        // Load worldObjects if they exist for this site
+        if (selectedSite && selectedSite.worldObjects && selectedSite.worldObjects.length > 0) {
+            for (let i = 0; i < selectedSite.worldObjects.length; i++) {
+                const worldObj = selectedSite.worldObjects[i];
+
+                // Load the object model
+                const objModel = await ImportMeshAsync(worldObj.modelPath, scene);
+                const objRootMesh = objModel.meshes[0];
+
+                // Create parent transform node for the object
+                const objParent = new TransformNode(`world_object_${worldObj.id}`, scene);
+
+                if (objRootMesh) {
+                    // Calculate bounding box to find center
+                    const boundingInfo = objRootMesh.getHierarchyBoundingVectors();
+                    const center = boundingInfo.max.add(boundingInfo.min).scale(0.5);
+
+                    // Move model so its center is at origin
+                    objRootMesh.position.subtractInPlace(center);
+                }
+
+                // Parent all object meshes to the transform node
+                objModel.meshes.forEach((mesh) => {
+                    if (mesh.parent === null) {
+                        mesh.parent = objParent;
+                    }
+                    mesh.checkCollisions = true;
+                });
+
+                // Apply position and rotation from worldObjects config
+                objParent.position.copyFrom(worldObj.position);
+                objParent.rotation.copyFrom(worldObj.rotation);
+                objParent.scaling.copyFrom(worldObj.scaling);
+
+                // Parent the object to the world so it scales and rotates with it
+                objParent.parent = worldParent;
+            }
+        }
     } else {
         // Use default ground plane
         const defaultWorld = MeshBuilder.CreateGround("ground", { width: GND_WIDTH, height: GND_HEIGHT }, scene);

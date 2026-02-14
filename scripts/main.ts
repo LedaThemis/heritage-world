@@ -937,8 +937,71 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
     return { camera, playerMesh, toggleGameMenu };
 };
 
+const createLoadingScreen = () => {
+    const loadingScreen = document.createElement("div");
+    loadingScreen.id = "loading-screen";
+    loadingScreen.style.position = "fixed";
+    loadingScreen.style.inset = "0";
+    loadingScreen.style.background = "rgba(0, 0, 0, 0.95)";
+    loadingScreen.style.display = "flex";
+    loadingScreen.style.flexDirection = "column";
+    loadingScreen.style.alignItems = "center";
+    loadingScreen.style.justifyContent = "center";
+    loadingScreen.style.zIndex = "10000";
+    loadingScreen.style.fontFamily = "sans-serif";
+    loadingScreen.style.color = "white";
+
+    const title = document.createElement("h2");
+    title.textContent = "Loading...";
+    title.style.marginBottom = "30px";
+    title.style.fontSize = "24px";
+    loadingScreen.appendChild(title);
+
+    const progressContainer = document.createElement("div");
+    progressContainer.style.width = "300px";
+    progressContainer.style.height = "20px";
+    progressContainer.style.background = "rgba(255, 255, 255, 0.1)";
+    progressContainer.style.borderRadius = "10px";
+    progressContainer.style.overflow = "hidden";
+    progressContainer.style.marginBottom = "15px";
+
+    const progressBar = document.createElement("div");
+    progressBar.id = "loading-progress-bar";
+    progressBar.style.width = "0%";
+    progressBar.style.height = "100%";
+    progressBar.style.background = "linear-gradient(90deg, #3b82f6, #2563eb)";
+    progressBar.style.transition = "width 0.3s ease";
+    progressContainer.appendChild(progressBar);
+
+    const progressText = document.createElement("div");
+    progressText.id = "loading-progress-text";
+    progressText.textContent = "0%";
+    progressText.style.fontSize = "14px";
+    progressText.style.opacity = "0.8";
+
+    loadingScreen.appendChild(progressContainer);
+    loadingScreen.appendChild(progressText);
+
+    document.body.appendChild(loadingScreen);
+
+    return {
+        updateProgress: (percent: number, text?: string) => {
+            progressBar.style.width = `${percent}%`;
+            progressText.textContent = text || `${Math.round(percent)}%`;
+        },
+        remove: () => {
+            loadingScreen.style.opacity = "0";
+            loadingScreen.style.transition = "opacity 0.5s ease";
+            setTimeout(() => loadingScreen.remove(), 500);
+        },
+    };
+};
+
 const createScene = async function (nickname: string, worldModelPath?: string | null) {
     const scene = setupScene(engine);
+
+    // Show loading screen
+    const loadingScreen = createLoadingScreen();
 
     // Create connection status header
     const statusHeader = document.createElement("div");
@@ -1315,9 +1378,17 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
 
     let ground: AbstractMesh | TransformNode;
     if (worldModelPath) {
-        // Load custom world model
+        // Load custom world model with progress tracking
+        loadingScreen.updateProgress(10, "Loading world model...");
+
         const worldModel = await ImportMeshAsync(worldModelPath, scene);
         const rootMesh = worldModel.meshes[0];
+
+        loadingScreen.updateProgress(50, "Setting up world...");
+
+        worldModel.animationGroups.forEach((animationGroup) => {
+            animationGroup.stop();
+        });
 
         // Create parent transform node for the world model
         const worldParent = new TransformNode("world_parent", scene);
@@ -1342,12 +1413,17 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
         });
 
         ground = worldParent;
-        // ground.checkCollisions = true;
 
         // Load worldObjects if they exist for this site
         if (selectedSite && selectedSite.worldObjects && selectedSite.worldObjects.length > 0) {
-            for (let i = 0; i < selectedSite.worldObjects.length; i++) {
+            const totalObjects = selectedSite.worldObjects.length;
+
+            for (let i = 0; i < totalObjects; i++) {
                 const worldObj = selectedSite.worldObjects[i];
+
+                // Calculate progress: 50% already done from world model, divide remaining 50% among objects
+                const objectProgress = 50 + ((i + 1) / totalObjects) * 50;
+                loadingScreen.updateProgress(objectProgress, `Loading objects... (${i + 1}/${totalObjects})`);
 
                 // Load the object model
                 const objModel = await ImportMeshAsync(worldObj.modelPath, scene);
@@ -1382,12 +1458,21 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
                 objParent.parent = worldParent;
             }
         }
+
+        loadingScreen.updateProgress(100, "Complete!");
     } else {
         // Use default ground plane
+        loadingScreen.updateProgress(50, "Creating ground...");
         const defaultWorld = MeshBuilder.CreateGround("ground", { width: GND_WIDTH, height: GND_HEIGHT }, scene);
         defaultWorld.checkCollisions = true;
         ground = defaultWorld;
+        loadingScreen.updateProgress(100, "Complete!");
     }
+
+    // Hide loading screen
+    setTimeout(() => {
+        loadingScreen.remove();
+    }, 500);
 
     // Remote Movement Loop
     scene.registerBeforeRender(() => {

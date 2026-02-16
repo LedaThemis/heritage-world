@@ -846,8 +846,8 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
             lastTouchY = touch.clientY;
 
             // Rotate camera based on touch movement
-            camera.rotation.y -= deltaX * lookSensitivity;
-            camera.rotation.x -= deltaY * lookSensitivity;
+            camera.rotation.y += deltaX * lookSensitivity;
+            camera.rotation.x += deltaY * lookSensitivity;
 
             // Clamp vertical look
             camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));

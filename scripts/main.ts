@@ -78,6 +78,7 @@ const SITES: HeritageSite[] = [
                   description: "A single scene for auto-loading the world without need for user interaction",
                   thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
                   worldModelPath: "./assets/models/al-tahira-world.glb",
+                  worldModelScaling: new Vector3(2, 2, 2),
                   worldObjects: [
                       {
                           id: "pot",
@@ -200,6 +201,18 @@ const SITES: HeritageSite[] = [
                       },
                   ],
               },
+              {
+                  id: "SINGLE-SCENE2",
+                  name: "Single Scene 2",
+                  position: new Vector3(-15, 1, 15),
+                  description: "A single scene for auto-loading the world without need for user interaction",
+                  thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
+                  worldModelPath: "./assets/models/cloister.glb",
+                  worldModelScaling: new Vector3(1, 1, 1),
+                  worldModelRotation: new Vector3(-Math.PI / 2, 0, 0),
+                  worldPlayerSpawnPosition: new Vector3(55, 0, -52),
+                  worldPlayerRotation: new Vector3(0, -Math.PI / 2, 0),
+              },
           ]
         : []),
     {
@@ -209,6 +222,7 @@ const SITES: HeritageSite[] = [
         description: "A historic collection showcasing traditional architecture and cultural heritage of the region.",
         thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
         worldModelPath: "./assets/models/al-tahira-world.glb",
+        worldModelScaling: new Vector3(2, 2, 2),
         websiteUrl: "https://alqaba.com/al-tahira-church",
         virtualWalkthroughUrl: "https://www.alqaba.com/al-tahira-church/walkthrough",
         sketchfabUrl:
@@ -297,7 +311,7 @@ const setupSkybox = function (scene: Scene) {
     scene.createDefaultSkybox(skyBoxTexture, true, 1000);
 };
 
-const createPlayerMesh = function (scene: Scene) {
+const createPlayerMesh = function (scene: Scene, worldPlayerSpawnPosition?: Vector3, worldPlayerRotation?: Vector3) {
     const playerMesh = MeshBuilder.CreateCapsule(
         "player",
         {
@@ -307,6 +321,8 @@ const createPlayerMesh = function (scene: Scene) {
         scene
     );
     playerMesh.position = new Vector3(0, PLAYER_HEIGHT / 2, 0);
+    if (worldPlayerSpawnPosition) playerMesh.position.addInPlace(worldPlayerSpawnPosition);
+    if (worldPlayerRotation) playerMesh.rotation.addInPlace(worldPlayerRotation);
 
     // Make player mesh transparent
     const playerMaterial = new StandardMaterial("player_mat", scene);
@@ -445,8 +461,15 @@ const showEmote = (sessionId: string, emote: string, scene: Scene, parentMesh: M
     }, 3000);
 };
 
-const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Room, nickname: string) {
-    const playerMesh = createPlayerMesh(scene);
+const setupCamera = function (
+    canvas: HTMLCanvasElement,
+    scene: Scene,
+    room: Room,
+    nickname: string,
+    worldPlayerSpawnPosition?: Vector3,
+    worldPlayerRotation?: Vector3
+) {
+    const playerMesh = createPlayerMesh(scene, worldPlayerSpawnPosition, worldPlayerRotation);
 
     // Create camera
     const camera = new UniversalCamera("player_camera", new Vector3(0, PLAYER_HEIGHT, 0), scene);
@@ -997,7 +1020,14 @@ const createLoadingScreen = () => {
     };
 };
 
-const createScene = async function (nickname: string, worldModelPath?: string | null) {
+const createScene = async function (
+    nickname: string,
+    worldModelPath?: string | null,
+    worldModelScaling?: Vector3,
+    worldModelRotation?: Vector3,
+    worldPlayerSpawnPosition?: Vector3,
+    worldPlayerRotation?: Vector3
+) {
     const scene = setupScene(engine);
 
     // Show loading screen
@@ -1204,7 +1234,14 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
         document.body.appendChild(leftContainer);
     }
 
-    const { camera, playerMesh, toggleGameMenu } = setupCamera(canvas, scene, room!, nickname);
+    const { camera, playerMesh, toggleGameMenu } = setupCamera(
+        canvas,
+        scene,
+        room!,
+        nickname,
+        worldPlayerSpawnPosition,
+        worldPlayerRotation
+    );
     setupLight(scene);
     setupSkybox(scene);
 
@@ -1392,8 +1429,12 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
 
         // Create parent transform node for the world model
         const worldParent = new TransformNode("world_parent", scene);
-        worldParent.rotation.y = 0;
-        worldParent.scaling = new Vector3(2, 2, 2);
+        if (worldModelRotation) {
+            worldParent.rotation = worldModelRotation;
+        } else {
+            worldParent.rotation.y = 0;
+        }
+        worldParent.scaling = worldModelScaling ?? new Vector3(1, 1, 1);
 
         if (rootMesh) {
             // Calculate bounding box to find center
@@ -1908,7 +1949,14 @@ const createMapScene = async () => {
 
 const startGame = async (nickname: string) => {
     activeScene?.dispose();
-    activeScene = await createScene(nickname, selectedSite?.worldModelPath);
+    activeScene = await createScene(
+        nickname,
+        selectedSite?.worldModelPath,
+        selectedSite?.worldModelScaling,
+        selectedSite?.worldModelRotation,
+        selectedSite?.worldPlayerSpawnPosition,
+        selectedSite?.worldPlayerRotation
+    );
 };
 
 registerBuiltInLoaders();
@@ -1929,7 +1977,14 @@ if (LOAD_SITE_ON_START === null) {
 
         // Start game with randomly generated name
         const nickname = generateFriendlyName();
-        activeScene = await createScene(nickname, selectedSite.worldModelPath);
+        activeScene = await createScene(
+            nickname,
+            selectedSite.worldModelPath,
+            selectedSite.worldModelScaling,
+            selectedSite.worldModelRotation,
+            selectedSite.worldPlayerSpawnPosition,
+            selectedSite.worldPlayerRotation
+        );
     }
 }
 

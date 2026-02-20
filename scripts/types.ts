@@ -21,6 +21,10 @@ export interface HeritageSite {
     thumbnailPath: string;
     modelPath?: string;
     worldModelPath?: string;
+    worldModelScaling?: Vector3;
+    worldModelRotation?: Vector3;
+    worldPlayerSpawnPosition?: Vector3;
+    worldPlayerRotation?: Vector3;
     websiteUrl?: string;
     virtualWalkthroughUrl?: string;
     sketchfabUrl?: string;

@@ -33,6 +33,10 @@ import {
 import HavokPhysics from "@babylonjs/havok";
 import { Client, getStateCallbacks, Room } from "colyseus.js";
 import { registerBuiltInLoaders } from "@babylonjs/loaders/dynamic";
+import { createTimelinePanel, destroyTimeline } from "./timeline/timelinePanel";
+import { showInfoCard } from "./timeline/timelineInfoCard";
+import { animateCameraToEra, updateSiteVisibility } from "./timeline/timelineAnimations";
+import { SITE_ERA_MAP, HISTORICAL_ERAS } from "./timeline/timelineData";
 
 interface PlayerRoomType {
     players: {
@@ -1642,6 +1646,7 @@ const createMapScene = async () => {
             sidePanel.remove();
             headerTip.remove();
             experienceContainer.remove();
+            destroyTimeline();
 
             // Start game with randomly generated name
             const nickname = generateFriendlyName();
@@ -1874,12 +1879,18 @@ const createMapScene = async () => {
         sidePanel.appendChild(siteCard);
     });
 
+    // Track site meshes for timeline visibility control
+    const siteClickBoxes = new Map<string, AbstractMesh[]>();
+
     sites.forEach(async (site) => {
         // Create invisible clickable box for all sites (for detecting clicks)
         const clickBox = MeshBuilder.CreateBox(`site-${site.id}`, { size: 2 }, scene);
         clickBox.position.copyFrom(site.position);
         clickBox.isPickable = true;
         clickBox.visibility = 0; // Invisible but still pickable
+
+        // Register this site's meshes for timeline visibility
+        const siteMeshes: AbstractMesh[] = [];
 
         if (site.modelPath) {
             // Load 3D model if modelPath is provided
@@ -1907,6 +1918,7 @@ const createMapScene = async () => {
                     mesh.parent = siteContainer;
                 }
                 mesh.isPickable = false; // Don't pick individual model meshes
+                siteMeshes.push(mesh);
             });
         } else {
             // Create visible material for box if no model is provided
@@ -1914,12 +1926,17 @@ const createMapScene = async () => {
             boxMat.diffuseColor = new Color3(246 / 255, 215 / 255, 176 / 255);
             clickBox.material = boxMat;
             clickBox.visibility = 1; // Make visible
+            siteMeshes.push(clickBox);
         }
 
         // Create and position label above the site
         const label = createBillboardLabel(site.name, scene);
         label.position.copyFrom(site.position);
         label.position.y += 3;
+        siteMeshes.push(label);
+
+        // Register for timeline visibility
+        siteClickBoxes.set(site.name, siteMeshes);
     });
 
     scene.onPointerObservable.add((pointerInfo) => {
@@ -1974,6 +1991,20 @@ const createMapScene = async () => {
             experienceContainer.style.right = "-400px"; // Animate out
             animateCameraFocus(Vector3.Zero(), 60);
         }
+    });
+
+    // --- Mount Timeline Navigation ---
+    createTimelinePanel({
+        onEraChange: (era, _index) => {
+            // Animate camera toward era's geographic region
+            animateCameraToEra(era, camera, scene);
+
+            // Update heritage site marker visibility
+            const visibleCount = updateSiteVisibility(era.id, siteClickBoxes, scene);
+
+            // Update the info card
+            showInfoCard(era, visibleCount);
+        },
     });
 
     return scene;

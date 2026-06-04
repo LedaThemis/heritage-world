@@ -37,6 +37,7 @@ import { createTimelinePanel, destroyTimeline } from "./timeline/timelinePanel";
 import { showInfoCard } from "./timeline/timelineInfoCard";
 import { animateCameraToEra, updateSiteVisibility } from "./timeline/timelineAnimations";
 import { SITE_ERA_MAP, HISTORICAL_ERAS } from "./timeline/timelineData";
+import { initCloudTransition, triggerCloudTransition, disposeCloudTransition } from "./timeline/cloudTransition";
 
 interface PlayerRoomType {
     players: {
@@ -1647,6 +1648,7 @@ const createMapScene = async () => {
             headerTip.remove();
             experienceContainer.remove();
             destroyTimeline();
+            disposeCloudTransition();
 
             // Start game with randomly generated name
             const nickname = generateFriendlyName();
@@ -1731,6 +1733,9 @@ const createMapScene = async () => {
 
     // Start the fog wall
     fogWallParticleSystem.start();
+
+    // Initialize cloud transition system (uses same smoke.png texture)
+    initCloudTransition(scene, fogWallParticleSystem);
 
     const sites: HeritageSite[] = [
         {
@@ -1994,16 +1999,27 @@ const createMapScene = async () => {
     });
 
     // --- Mount Timeline Navigation ---
+    // Track whether this is the initial load (skip transition for first era)
+    let isInitialEraLoad = true;
+
     createTimelinePanel({
         onEraChange: (era, _index) => {
-            // Animate camera toward era's geographic region
-            animateCameraToEra(era, camera, scene);
+            if (isInitialEraLoad) {
+                // First load — apply directly without cloud transition
+                isInitialEraLoad = false;
+                animateCameraToEra(era, camera, scene);
+                const visibleCount = updateSiteVisibility(era.id, siteClickBoxes, scene);
+                showInfoCard(era, visibleCount);
+                return;
+            }
 
-            // Update heritage site marker visibility
-            const visibleCount = updateSiteVisibility(era.id, siteClickBoxes, scene);
-
-            // Update the info card
-            showInfoCard(era, visibleCount);
+            // Subsequent era changes — use cloud cover transition
+            triggerCloudTransition(() => {
+                // These run while the map is hidden under clouds
+                animateCameraToEra(era, camera, scene);
+                const visibleCount = updateSiteVisibility(era.id, siteClickBoxes, scene);
+                showInfoCard(era, visibleCount);
+            });
         },
     });
 

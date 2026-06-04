@@ -12,6 +12,7 @@
 import { HISTORICAL_ERAS, getEraIndex, type HistoricalEra } from "./timelineData";
 import { injectTimelineStyles, removeTimelineStyles } from "./timelineStyles";
 import { showInfoCard, destroyInfoCard } from "./timelineInfoCard";
+import { isCloudTransitioning } from "./cloudTransition";
 
 export interface TimelineCallbacks {
     /** Called when the active era changes */
@@ -100,7 +101,7 @@ const updateVisualState = (eraIndex: number, animate = true): void => {
  * Sets the active era by index and fires the callback.
  */
 const setEraByIndex = (index: number, fireCallback = true): void => {
-    if (index === currentEraIndex) return;
+    if (index === currentEraIndex || isCloudTransitioning()) return;
     currentEraIndex = index;
     updateVisualState(index);
 
@@ -114,7 +115,7 @@ const setEraByIndex = (index: number, fireCallback = true): void => {
  * Handles pointer/mouse down on the track for click-to-seek.
  */
 const onTrackClick = (e: MouseEvent): void => {
-    if (!trackContainer || isDragging) return;
+    if (!trackContainer || isDragging || isCloudTransitioning()) return;
     const rect = trackContainer.getBoundingClientRect();
     const percent = ((e.clientX - rect.left) / rect.width) * 100;
     const nearestIndex = getNearestEraIndex(percent);
@@ -125,6 +126,7 @@ const onTrackClick = (e: MouseEvent): void => {
  * Handles scrubber drag start.
  */
 const onScrubberDown = (e: MouseEvent | TouchEvent): void => {
+    if (isCloudTransitioning()) return;
     e.preventDefault();
     e.stopPropagation();
     isDragging = true;

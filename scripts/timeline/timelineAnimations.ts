@@ -105,15 +105,18 @@ export const updateSiteVisibility = (
             );
             visAnim.setKeys([
                 { frame: 0, value: currentAlpha },
-                { frame: 30, value: targetAlpha },
+                { frame: 90, value: targetAlpha }, // 1.5 second duration
             ]);
 
             const easing = new CubicEase();
             easing.setEasingMode(EasingFunction.EASINGMODE_EASEINOUT);
             visAnim.setEasingFunction(easing);
 
-            mesh.animations = [visAnim];
-            scene.beginAnimation(mesh, 0, 30, false);
+            // Preserve existing animations if any, and append the new one
+            mesh.animations = mesh.animations || [];
+            mesh.animations.push(visAnim);
+            
+            scene.beginDirectAnimation(mesh, [visAnim], 0, 90, false);
         }
     }
 

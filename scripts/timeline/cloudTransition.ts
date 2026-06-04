@@ -119,8 +119,8 @@ export const initCloudTransition = (
     }
     mainFogSystem.fogEnabled = true;
 
-    // Create the storm cover system
-    coverSystem = new GPUParticleSystem("fogCoverParticles", { capacity: 6000 }, scene);
+    // Create the storm cover system — optimized capacity for better FPS
+    coverSystem = new GPUParticleSystem("fogCoverParticles", { capacity: 2000 }, scene);
 
     // Spawn in a wide ring just outside the main map (radius 35, thickness 5)
     coverSystem.particleEmitterType = new CylinderParticleEmitter(35, 10, 5);
@@ -128,22 +128,22 @@ export const initCloudTransition = (
     // Use exact same smoke texture
     coverSystem.particleTexture = new Texture("./assets/textures/smoke.png", scene);
 
-    // Fast emission rate to build a dense wave
-    coverSystem.emitRate = 4500;
+    // Reduced emission rate for better performance, compensated by larger particles
+    coverSystem.emitRate = 1200;
 
     // Lifetimes configured so particles cross the center and fly out the other side
     // This naturally creates the "inward roll -> pause -> outward roll" effect
     coverSystem.minLifeTime = 3.6;
     coverSystem.maxLifeTime = 4.2;
 
-    // Large particles to obscure everything
-    coverSystem.minSize = 12;
-    coverSystem.maxSize = 25;
+    // Much larger particles to obscure everything with less overdraw (fixes lag)
+    coverSystem.minSize = 25;
+    coverSystem.maxSize = 45;
 
     // Fade in at the edges, stay fully opaque through the center, fade out at the opposite edge
     coverSystem.addColorGradient(0.0, new Color4(0.9, 0.9, 0.9, 0.0));
-    coverSystem.addColorGradient(0.1, new Color4(0.9, 0.9, 0.9, 0.7)); // Very dense
-    coverSystem.addColorGradient(0.8, new Color4(0.95, 0.95, 0.95, 0.7));
+    coverSystem.addColorGradient(0.1, new Color4(0.9, 0.9, 0.9, 0.85)); // Increased opacity to compensate for fewer particles
+    coverSystem.addColorGradient(0.8, new Color4(0.95, 0.95, 0.95, 0.85));
     coverSystem.addColorGradient(1.0, new Color4(0.85, 0.85, 0.85, 0.0));
 
     // Shoot inwards from the perimeter toward the center

@@ -400,21 +400,64 @@ export const injectTimelineStyles = (): void => {
         }
 
         @media (max-width: 500px) {
+            .tl-panel {
+                padding: 12px;
+                bottom: 12px;
+                left: 12px;
+                right: 12px;
+            }
+
+            .tl-eras {
+                margin-bottom: 10px;
+                gap: 2px;
+            }
+
             .tl-era-label {
                 font-size: 9px;
-                padding: 3px 4px;
+                padding: 4px 2px;
+                max-width: 18%;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                letter-spacing: 0;
             }
 
             .tl-info-card {
-                grid-template-columns: 1fr;
-                grid-template-rows: auto auto auto auto;
-                gap: 6px;
+                grid-template-columns: 1fr auto;
+                grid-template-rows: auto auto auto;
+                gap: 4px 8px;
+                padding-bottom: 10px;
+                margin-bottom: 10px;
             }
 
-            .tl-info-card__era-name { grid-column: 1; grid-row: 1; }
-            .tl-info-card__date-range { grid-column: 1; grid-row: 2; }
-            .tl-info-card__sites-badge { grid-column: 1; grid-row: 3; justify-self: start; }
-            .tl-info-card__description { grid-column: 1; grid-row: 4; margin-top: 4px; }
+            .tl-info-card__era-name { 
+                grid-column: 1; 
+                grid-row: 1; 
+                font-size: 14px;
+            }
+            .tl-info-card__date-range { 
+                grid-column: 1; 
+                grid-row: 2; 
+                font-size: 11px;
+            }
+            .tl-info-card__sites-badge { 
+                grid-column: 2; 
+                grid-row: 1 / span 2; 
+                align-self: center;
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+            .tl-info-card__description { 
+                grid-column: 1 / span 2; 
+                grid-row: 3; 
+                margin-top: 4px;
+                font-size: 11.5px;
+                line-height: 1.4;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
         }
     `;
 

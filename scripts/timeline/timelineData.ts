@@ -127,4 +127,12 @@ export const SITE_ERA_MAP: Record<string, string[]> = {
     "Baghdad Museum": ["modern"],
     "Uruk City": ["sumerian"],
     "Al-Chibayish Marshlands": ["sumerian", "modern"],
+    "Al-Ukhaidir Fortress": ["islamic"],
+    "Walls of Mosul": ["assyrian", "islamic", "ottoman"],
+    "Hatra Temple": ["babylonian", "assyrian"],
+    "Babylon": ["babylonian"],
+    "Malwiya Minaret": ["islamic"],
+    "Anah Minaret": ["islamic", "ottoman"],
+    "Ur Ziggurat": ["sumerian", "babylonian"],
+    "Taq Kasra": ["babylonian", "islamic"],
 };

@@ -248,6 +248,9 @@ export const injectTimelineStyles = (): void => {
             box-shadow: 0 0 12px rgba(201, 168, 76, 0.5), 0 0 24px rgba(201, 168, 76, 0.2);
             animation: tl-glow-opacity 3s ease-in-out infinite;
             pointer-events: none;
+            /* Force hardware acceleration so the box-shadow is only painted once and then alpha-blended */
+            will-change: opacity;
+            transform: translateZ(0);
         }
 
         /* Era tick marks on the track */
@@ -313,6 +316,7 @@ export const injectTimelineStyles = (): void => {
             grid-template-rows: auto auto;
             gap: 4px 32px;
             align-items: center;
+            will-change: opacity, transform;
         }
 
         .tl-info-card__era-icon {

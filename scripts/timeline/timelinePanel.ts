@@ -122,6 +122,9 @@ const onTrackClick = (e: MouseEvent): void => {
     setEraByIndex(nearestIndex);
 };
 
+let activeOnMove: ((e: MouseEvent | TouchEvent) => void) | null = null;
+let activeOnUp: (() => void) | null = null;
+
 /**
  * Handles scrubber drag start.
  */
@@ -129,6 +132,12 @@ const onScrubberDown = (e: MouseEvent | TouchEvent): void => {
     if (isCloudTransitioning()) return;
     e.preventDefault();
     e.stopPropagation();
+    
+    // Clean up any existing listeners just in case
+    if (activeOnUp) {
+        activeOnUp();
+    }
+    
     isDragging = true;
     
     const startEraIndex = currentEraIndex;
@@ -141,7 +150,7 @@ const onScrubberDown = (e: MouseEvent | TouchEvent): void => {
         if (!isDragging || !trackContainer) return;
         const rect = trackContainer.getBoundingClientRect();
         const clientX =
-            moveEvent instanceof MouseEvent ? moveEvent.clientX : moveEvent.touches[0].clientX;
+            moveEvent instanceof MouseEvent ? moveEvent.clientX : (moveEvent as TouchEvent).touches[0].clientX;
         let percent = ((clientX - rect.left) / rect.width) * 100;
         percent = Math.max(0, Math.min(100, percent));
 
@@ -201,12 +210,20 @@ const onScrubberDown = (e: MouseEvent | TouchEvent): void => {
         document.removeEventListener("mouseup", onUp);
         document.removeEventListener("touchmove", onMove);
         document.removeEventListener("touchend", onUp);
+        document.removeEventListener("touchcancel", onUp);
+        
+        activeOnMove = null;
+        activeOnUp = null;
     };
+    
+    activeOnMove = onMove;
+    activeOnUp = onUp;
 
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
     document.addEventListener("touchmove", onMove, { passive: false });
     document.addEventListener("touchend", onUp);
+    document.addEventListener("touchcancel", onUp);
 };
 
 /**
@@ -329,6 +346,10 @@ export const setTimelineEra = (eraId: string): void => {
  * Removes the timeline from the DOM and cleans up.
  */
 export const destroyTimeline = (): void => {
+    if (activeOnUp) {
+        activeOnUp();
+    }
+
     if (panelElement) {
         panelElement.remove();
         panelElement = null;

@@ -71,6 +71,10 @@ export const animateCameraToEra = (
     scene.beginAnimation(camera, 0, animDuration, false);
 };
 
+// Reuse a single easing instance for performance
+const visibilityEasing = new CubicEase();
+visibilityEasing.setEasingMode(EasingFunction.EASINGMODE_EASEINOUT);
+
 /**
  * Updates the visibility of heritage site markers based on the active era.
  * Sites associated with the era fade in; others fade out.
@@ -115,9 +119,7 @@ export const updateSiteVisibility = (
                 { frame: 90, value: targetAlpha }, // 1.5 second duration
             ]);
 
-            const easing = new CubicEase();
-            easing.setEasingMode(EasingFunction.EASINGMODE_EASEINOUT);
-            visAnim.setEasingFunction(easing);
+            visAnim.setEasingFunction(visibilityEasing);
 
             // Do not accumulate animations on the mesh object
             mesh.animations = [visAnim];

@@ -33,18 +33,31 @@ export const showInfoCard = (era: HistoricalEra, visibleSiteCount: number): void
         return;
     }
 
-    const previousCard = cardElement;
-
-    // If there's an existing card, animate it out first
-    if (previousCard) {
-        previousCard.classList.add("tl-info-card--exiting");
-        const exitDuration = 250;
-        setTimeout(() => {
-            previousCard.remove();
-        }, exitDuration);
-    }
-
     currentEraId = era.id;
+    const icon = ERA_ICONS[era.id] || "⚜";
+
+    // If card already exists, seamlessly update its text with a quick fade
+    if (cardElement) {
+        cardElement.style.transition = "opacity 0.15s ease-out";
+        cardElement.style.opacity = "0";
+
+        setTimeout(() => {
+            if (!cardElement) return;
+
+            const eraName = cardElement.querySelector(".tl-info-card__era-name");
+            const dateRange = cardElement.querySelector(".tl-info-card__date-range");
+            const description = cardElement.querySelector(".tl-info-card__description");
+            const sitesBadge = cardElement.querySelector(".tl-info-card__sites-badge");
+
+            if (eraName) eraName.innerHTML = `<span class="tl-info-card__era-icon">${icon}</span> ${era.name}`;
+            if (dateRange) dateRange.textContent = era.displayRange;
+            if (description) description.textContent = era.description;
+            if (sitesBadge) sitesBadge.innerHTML = `<span class="tl-info-card__sites-icon">📍</span> ${visibleSiteCount} heritage site${visibleSiteCount !== 1 ? "s" : ""} visible`;
+
+            cardElement.style.opacity = "1";
+        }, 150);
+        return;
+    }
 
     // Build new card
     const card = document.createElement("div");
@@ -53,7 +66,6 @@ export const showInfoCard = (era: HistoricalEra, visibleSiteCount: number): void
     // Era icon + name
     const eraName = document.createElement("h3");
     eraName.className = "tl-info-card__era-name";
-    const icon = ERA_ICONS[era.id] || "⚜";
     eraName.innerHTML = `<span class="tl-info-card__era-icon">${icon}</span> ${era.name}`;
     card.appendChild(eraName);
 
@@ -75,20 +87,23 @@ export const showInfoCard = (era: HistoricalEra, visibleSiteCount: number): void
     sitesBadge.innerHTML = `<span class="tl-info-card__sites-icon">📍</span> ${visibleSiteCount} heritage site${visibleSiteCount !== 1 ? "s" : ""} visible`;
     card.appendChild(sitesBadge);
 
-    // Delay insertion slightly so exit animation of previous card is visible
-    const delay = previousCard ? 150 : 0;
-    setTimeout(() => {
+    // Append directly inside timeline panel to integrate visually
+    const panel = document.querySelector(".tl-panel");
+    if (panel) {
+        panel.insertBefore(card, panel.firstChild);
+    } else {
         document.body.appendChild(card);
-        cardElement = card;
-    }, delay);
+    }
+    cardElement = card;
 };
 
 /**
- * Removes the info card with exit animation.
+ * Removes the info card with fade out animation.
  */
 export const hideInfoCard = (): void => {
     if (cardElement) {
-        cardElement.classList.add("tl-info-card--exiting");
+        cardElement.style.transition = "opacity 0.25s ease-in";
+        cardElement.style.opacity = "0";
         const exitCard = cardElement;
         setTimeout(() => {
             exitCard.remove();

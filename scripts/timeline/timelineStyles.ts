@@ -284,26 +284,18 @@ export const injectTimelineStyles = (): void => {
            TIMELINE — Info Card
            ============================================ */
         .tl-info-card {
-            position: fixed;
-            bottom: 130px;
-            /* Centre within the space to the right of the sidebar */
-            left: calc(430px + ((100vw - 430px - 20px - 420px) / 2));
-            z-index: 199;
-            padding: 20px 26px;
-            width: 420px;
-            background: var(--tl-glass-bg);
-            backdrop-filter: blur(var(--tl-blur));
-            -webkit-backdrop-filter: blur(var(--tl-blur));
-            border: 1px solid var(--tl-glass-border);
-            border-radius: var(--tl-radius-sm);
+            width: 100%;
+            padding-bottom: 16px;
+            margin-bottom: 14px;
+            border-bottom: 1px solid rgba(201, 168, 76, 0.15);
             font-family: var(--tl-font);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
             animation: tl-fade-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
             pointer-events: none;
-        }
-
-        .tl-info-card--exiting {
-            animation: tl-fade-slide-down 0.25s ease-in forwards;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            grid-template-rows: auto auto;
+            gap: 4px 32px;
+            align-items: center;
         }
 
         .tl-info-card__era-icon {
@@ -314,7 +306,9 @@ export const injectTimelineStyles = (): void => {
         }
 
         .tl-info-card__era-name {
-            margin: 0 0 4px 0;
+            grid-column: 1;
+            grid-row: 1;
+            margin: 0;
             font-size: 18px;
             font-weight: 700;
             letter-spacing: 0.8px;
@@ -324,7 +318,9 @@ export const injectTimelineStyles = (): void => {
         }
 
         .tl-info-card__date-range {
-            margin: 0 0 12px 0;
+            grid-column: 1;
+            grid-row: 2;
+            margin: 0;
             font-size: 13px;
             font-weight: 400;
             color: rgba(255, 255, 255, 0.5);
@@ -332,7 +328,9 @@ export const injectTimelineStyles = (): void => {
         }
 
         .tl-info-card__description {
-            margin: 0 0 14px 0;
+            grid-column: 2;
+            grid-row: 1 / span 2;
+            margin: 0;
             font-size: 13.5px;
             font-weight: 400;
             line-height: 1.6;
@@ -340,6 +338,8 @@ export const injectTimelineStyles = (): void => {
         }
 
         .tl-info-card__sites-badge {
+            grid-column: 3;
+            grid-row: 1 / span 2;
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -350,6 +350,7 @@ export const injectTimelineStyles = (): void => {
             font-size: 12px;
             font-weight: 500;
             color: var(--tl-gold);
+            white-space: nowrap;
         }
 
         .tl-info-card__sites-icon {
@@ -370,13 +371,18 @@ export const injectTimelineStyles = (): void => {
             }
 
             .tl-info-card {
-                left: 50%;
-                transform: translateX(-50%);
-                width: calc(100vw - 48px);
-                max-width: 420px;
-                bottom: 110px;
-                padding: 16px 18px;
+                width: 100%;
+                padding-bottom: 12px;
+                margin-bottom: 12px;
+                grid-template-columns: 1fr auto;
+                grid-template-rows: auto auto auto;
+                gap: 8px 16px;
             }
+
+            .tl-info-card__era-name { grid-column: 1; grid-row: 1; }
+            .tl-info-card__date-range { grid-column: 1; grid-row: 2; }
+            .tl-info-card__sites-badge { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+            .tl-info-card__description { grid-column: 1 / span 2; grid-row: 3; margin-top: 4px; }
 
             .tl-era-label {
                 font-size: 10px;
@@ -398,6 +404,17 @@ export const injectTimelineStyles = (): void => {
                 font-size: 9px;
                 padding: 3px 4px;
             }
+
+            .tl-info-card {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto;
+                gap: 6px;
+            }
+
+            .tl-info-card__era-name { grid-column: 1; grid-row: 1; }
+            .tl-info-card__date-range { grid-column: 1; grid-row: 2; }
+            .tl-info-card__sites-badge { grid-column: 1; grid-row: 3; justify-self: start; }
+            .tl-info-card__description { grid-column: 1; grid-row: 4; margin-top: 4px; }
         }
     `;
 

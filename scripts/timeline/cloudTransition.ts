@@ -152,6 +152,9 @@ export const initCloudTransition = (
     coverSystem.gravity = new Vector3(0, 0, 0);
     coverSystem.blendMode = ParticleSystem.BLENDMODE_STANDARD;
 
+    // Ensure clouds render on top of markers and the map
+    coverSystem.renderingGroupId = 2;
+
     // DO NOT start() it here. It sits idle until triggered.
 };
 

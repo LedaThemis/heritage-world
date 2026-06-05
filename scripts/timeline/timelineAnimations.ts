@@ -31,6 +31,10 @@ export const animateCameraToEra = (
 
     const animDuration = 90; // frames at 60fps = 1.5s
 
+    // Stop existing animations to prevent conflicts when switching rapidly
+    scene.stopAnimation(camera, "tl-camera-target");
+    scene.stopAnimation(camera, "tl-camera-radius");
+
     // Animate camera target
     const targetAnim = new Animation(
         "tl-camera-target",
@@ -95,6 +99,9 @@ export const updateSiteVisibility = (
             const currentAlpha = mesh.visibility;
 
             if (Math.abs(currentAlpha - targetAlpha) < 0.01) continue;
+
+            // Stop any currently running visibility animation to prevent glitching
+            scene.stopAnimation(mesh, `tl-vis-${mesh.name}`);
 
             const visAnim = new Animation(
                 `tl-vis-${mesh.name}`,

@@ -130,6 +130,8 @@ const onScrubberDown = (e: MouseEvent | TouchEvent): void => {
     e.preventDefault();
     e.stopPropagation();
     isDragging = true;
+    
+    const startEraIndex = currentEraIndex;
 
     if (scrubberHandle) {
         scrubberHandle.classList.add("tl-scrubber--dragging");
@@ -187,10 +189,12 @@ const onScrubberDown = (e: MouseEvent | TouchEvent): void => {
         const nearestIndex = currentEraIndex;
         updateVisualState(nearestIndex, true);
 
-        // Fire callback
-        const era = HISTORICAL_ERAS[nearestIndex];
-        if (callbacks?.onEraChange) {
-            callbacks.onEraChange(era, nearestIndex);
+        // Fire callback only if era changed
+        if (nearestIndex !== startEraIndex) {
+            const era = HISTORICAL_ERAS[nearestIndex];
+            if (callbacks?.onEraChange) {
+                callbacks.onEraChange(era, nearestIndex);
+            }
         }
 
         document.removeEventListener("mousemove", onMove);

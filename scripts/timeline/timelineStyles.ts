@@ -27,10 +27,10 @@ export const injectTimelineStyles = (): void => {
             --tl-gold-bright: #e6c65a;
             --tl-gold-dim: #8b6914;
             --tl-bronze: #cd853f;
-            --tl-glass-bg: rgba(10, 8, 5, 0.78);
+            --tl-glass-bg: rgba(10, 8, 5, 0.88);
             --tl-glass-border: rgba(201, 168, 76, 0.18);
             --tl-glass-border-hover: rgba(201, 168, 76, 0.35);
-            --tl-blur: 24px;
+            --tl-blur: 12px;
             --tl-radius: 16px;
             --tl-radius-sm: 10px;
             --tl-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -41,13 +41,9 @@ export const injectTimelineStyles = (): void => {
         /* ============================================
            TIMELINE — Keyframe Animations
            ============================================ */
-        @keyframes tl-glow-pulse {
-            0%, 100% {
-                box-shadow: 0 0 8px rgba(201, 168, 76, 0.3), 0 0 16px rgba(201, 168, 76, 0.1);
-            }
-            50% {
-                box-shadow: 0 0 12px rgba(201, 168, 76, 0.5), 0 0 24px rgba(201, 168, 76, 0.2);
-            }
+        @keyframes tl-glow-pulse-opacity {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
         }
 
         @keyframes tl-glow-opacity {
@@ -86,13 +82,9 @@ export const injectTimelineStyles = (): void => {
             }
         }
 
-        @keyframes tl-scrubber-pulse {
-            0%, 100% {
-                box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
-            }
-            50% {
-                box-shadow: 0 0 0 6px rgba(201, 168, 76, 0.08), 0 2px 8px rgba(0, 0, 0, 0.3);
-            }
+        @keyframes tl-scrubber-glow {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
         }
 
         @keyframes tl-entrance {
@@ -130,6 +122,9 @@ export const injectTimelineStyles = (): void => {
             animation: tl-entrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
             user-select: none;
             -webkit-user-select: none;
+            /* Promote to own compositor layer so child animations don't trigger backdrop-filter re-blur */
+            will-change: transform;
+            transform: translateZ(0);
         }
 
         /* ============================================
@@ -177,12 +172,14 @@ export const injectTimelineStyles = (): void => {
             position: absolute;
             bottom: 0;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translateX(-50%) translateZ(0);
             width: 60%;
             height: 2px;
             background: linear-gradient(90deg, transparent, var(--tl-gold), transparent);
             border-radius: 1px;
-            animation: tl-glow-pulse 2.5s ease-in-out infinite;
+            box-shadow: 0 0 12px rgba(201, 168, 76, 0.5), 0 0 24px rgba(201, 168, 76, 0.2);
+            animation: tl-glow-pulse-opacity 2.5s ease-in-out infinite;
+            will-change: opacity;
         }
 
         .tl-era-year {
@@ -279,25 +276,41 @@ export const injectTimelineStyles = (): void => {
             border-radius: 50%;
             background: linear-gradient(135deg, var(--tl-gold-bright), var(--tl-gold));
             border: 2.5px solid rgba(255, 255, 255, 0.9);
-            transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%) translateZ(0);
             cursor: grab;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
             z-index: 10;
-            animation: tl-scrubber-pulse 3s ease-in-out infinite;
+        }
+
+        /* Glow pulse as a pseudo-element: only opacity is animated (GPU-composited, no repaint) */
+        .tl-scrubber::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            box-shadow: 0 0 0 6px rgba(201, 168, 76, 0.15), 0 0 12px rgba(201, 168, 76, 0.2);
+            animation: tl-scrubber-glow 3s ease-in-out infinite;
+            pointer-events: none;
+            will-change: opacity;
+            transform: translateZ(0);
         }
 
         .tl-scrubber:hover {
-            transform: translate(-50%, -50%) scale(1.2);
+            transform: translate(-50%, -50%) scale(1.2) translateZ(0);
             box-shadow: 0 0 0 6px rgba(201, 168, 76, 0.15), 0 2px 12px rgba(0, 0, 0, 0.4);
         }
 
         .tl-scrubber--dragging {
             cursor: grabbing !important;
-            transform: translate(-50%, -50%) scale(1.3) !important;
+            transform: translate(-50%, -50%) scale(1.3) translateZ(0) !important;
             box-shadow: 0 0 0 8px rgba(201, 168, 76, 0.2), 0 4px 16px rgba(0, 0, 0, 0.5) !important;
-            animation: none !important;
             transition: none !important;
+        }
+
+        .tl-scrubber--dragging::after {
+            animation: none !important;
+            opacity: 1;
         }
 
         /* ============================================

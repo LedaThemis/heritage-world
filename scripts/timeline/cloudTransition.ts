@@ -198,13 +198,19 @@ export const triggerCloudTransition = (onCovered: () => void): Promise<void> => 
         // revealing the new map. Wait for all particles to die.
         setTimeout(() => {
             isTransitioning = false;
-            if (coverSystem) {
-                // GPUParticleSystem doesn't know when particles die on the GPU, 
-                // so it keeps running compute shaders forever unless we reset it.
-                coverSystem.reset();
-            }
             resolve();
         }, TOTAL_DURATION_MS);
+
+        // 5. Deferred GPU cleanup — give particles an extra second to
+        // fully roll out and fade via their color gradients before wiping
+        // the GPU buffers. Without this reset the GPUParticleSystem keeps
+        // running compute shaders forever, but calling it too early kills
+        // the visual "roll-out" effect.
+        setTimeout(() => {
+            if (coverSystem) {
+                coverSystem.reset();
+            }
+        }, TOTAL_DURATION_MS + 1000);
     });
 };
 

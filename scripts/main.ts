@@ -1579,15 +1579,17 @@ const createMapScene = async () => {
     // Create website header in top left
     const websiteHeader = document.createElement("div");
     websiteHeader.style.padding = "20px";
-    websiteHeader.style.background = "rgba(10, 8, 5, 0.78)";
-    websiteHeader.style.backdropFilter = "blur(24px)";
-    websiteHeader.style.webkitBackdropFilter = "blur(24px)";
+    websiteHeader.style.background = "rgba(10, 8, 5, 0.88)";
+    websiteHeader.style.backdropFilter = "blur(12px)";
+    websiteHeader.style.webkitBackdropFilter = "blur(12px)";
     websiteHeader.style.border = "1px solid rgba(201, 168, 76, 0.18)";
     websiteHeader.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(201, 168, 76, 0.08) inset";
     websiteHeader.style.borderRadius = "16px";
     websiteHeader.style.color = "white";
     websiteHeader.style.fontFamily = "sans-serif";
     websiteHeader.style.pointerEvents = "none";
+    websiteHeader.style.willChange = "transform";
+    websiteHeader.style.transform = "translateZ(0)";
 
     const mainTitle = document.createElement("h1");
     mainTitle.textContent = "Heritage Iraq";
@@ -1613,15 +1615,17 @@ const createMapScene = async () => {
     infoPanel.style.width = "350px";
     infoPanel.style.maxHeight = "calc(100vh - 200px)";
     infoPanel.style.overflowY = "auto";
-    infoPanel.style.background = "rgba(10, 8, 5, 0.78)";
-    infoPanel.style.backdropFilter = "blur(24px)";
-    infoPanel.style.webkitBackdropFilter = "blur(24px)";
+    infoPanel.style.background = "rgba(10, 8, 5, 0.88)";
+    infoPanel.style.backdropFilter = "blur(12px)";
+    infoPanel.style.webkitBackdropFilter = "blur(12px)";
     infoPanel.style.border = "1px solid rgba(201, 168, 76, 0.18)";
     infoPanel.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(201, 168, 76, 0.08) inset";
     infoPanel.style.borderRadius = "16px";
     infoPanel.style.padding = "20px";
     infoPanel.style.color = "white";
     infoPanel.style.fontFamily = "sans-serif";
+    infoPanel.style.willChange = "transform";
+    infoPanel.style.transform = "translateZ(0)";
     leftContainer.appendChild(infoPanel);
 
     // Info panel header
@@ -1682,15 +1686,17 @@ const createMapScene = async () => {
     sidePanel.style.width = "350px";
     sidePanel.style.maxHeight = "calc(60vh - 40px - 40px)";
     sidePanel.style.overflowY = "auto";
-    sidePanel.style.background = "rgba(10, 8, 5, 0.78)";
-    sidePanel.style.backdropFilter = "blur(24px)";
-    sidePanel.style.webkitBackdropFilter = "blur(24px)";
+    sidePanel.style.background = "rgba(10, 8, 5, 0.88)";
+    sidePanel.style.backdropFilter = "blur(12px)";
+    sidePanel.style.webkitBackdropFilter = "blur(12px)";
     sidePanel.style.border = "1px solid rgba(201, 168, 76, 0.18)";
     sidePanel.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(201, 168, 76, 0.08) inset";
     sidePanel.style.borderRadius = "16px";
     sidePanel.style.padding = "20px";
     sidePanel.style.color = "white";
     sidePanel.style.fontFamily = "sans-serif";
+    sidePanel.style.willChange = "transform";
+    sidePanel.style.transform = "translateZ(0)";
 
     // Custom scrollbar styling
     const style = document.createElement("style");
@@ -1734,9 +1740,9 @@ const createMapScene = async () => {
     experienceContainer.style.width = "360px";
     experienceContainer.style.maxHeight = "calc(100vh - 40px)";
     experienceContainer.style.overflowY = "auto";
-    experienceContainer.style.background = "rgba(10, 8, 5, 0.78)";
-    experienceContainer.style.backdropFilter = "blur(24px)";
-    experienceContainer.style.webkitBackdropFilter = "blur(24px)";
+    experienceContainer.style.background = "rgba(10, 8, 5, 0.88)";
+    experienceContainer.style.backdropFilter = "blur(12px)";
+    experienceContainer.style.webkitBackdropFilter = "blur(12px)";
     experienceContainer.style.border = "1px solid rgba(201, 168, 76, 0.18)";
     experienceContainer.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(201, 168, 76, 0.08) inset";
     experienceContainer.style.borderRadius = "16px";
@@ -1747,6 +1753,8 @@ const createMapScene = async () => {
     experienceContainer.style.gap = "20px";
     experienceContainer.style.transition = "right 0.4s cubic-bezier(0.4, 0, 0.2, 1)";
     experienceContainer.style.fontFamily = "sans-serif";
+    experienceContainer.style.willChange = "transform";
+    experienceContainer.style.transform = "translateZ(0)";
     experienceContainer.classList.add("custom-scrollbar");
     document.body.appendChild(experienceContainer);
 

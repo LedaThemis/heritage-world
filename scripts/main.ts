@@ -1,6 +1,7 @@
 // TODO: Side panel: Implement "see more" instead of scrollbar
 // TODO: Make side panel a grid
 
+
 import {
     Engine,
     Scene,
@@ -10,7 +11,6 @@ import {
     MeshBuilder,
     ArcRotateCamera,
     PointerEventTypes,
-    HavokPlugin,
     UniversalCamera,
     StandardMaterial,
     CubeTexture,
@@ -30,7 +30,6 @@ import {
     CylinderParticleEmitter,
     GPUParticleSystem,
 } from "@babylonjs/core";
-import HavokPhysics from "@babylonjs/havok";
 import { Client, getStateCallbacks, Room } from "colyseus.js";
 import { registerBuiltInLoaders } from "@babylonjs/loaders/dynamic";
 import { createTimelinePanel, destroyTimeline } from "./timeline/timelinePanel";
@@ -38,37 +37,29 @@ import { showInfoCard } from "./timeline/timelineInfoCard";
 import { animateCameraToEra, updateSiteVisibility } from "./timeline/timelineAnimations";
 import { SITE_ERA_MAP, HISTORICAL_ERAS } from "./timeline/timelineData";
 import { initCloudTransition, triggerCloudTransition, disposeCloudTransition } from "./timeline/cloudTransition";
-
-interface PlayerRoomType {
-    players: {
-        x: number;
-        y: number;
-        z: number;
-        rotX?: number;
-        rotY?: number;
-        rotZ?: number;
-        rotW?: number;
-        name?: string;
-    }[];
-}
-
-interface HeritageSite {
-    id: string;
-    name: string;
-    position: Vector3;
-    description: string;
-    thumbnailPath: string;
-    modelPath?: string;
-    worldModelPath?: string;
-    websiteUrl?: string;
-    virtualWalkthroughUrl?: string;
-    sketchfabUrl?: string;
-}
+import type { PlayerRoomType, HeritageSite } from "./types";
 
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement | null;
 
 if (!canvas) {
     throw new Error("Canvas element not found.");
+}
+
+// Default
+let LOAD_SITE_ON_START: string | null = null;
+let USE_OFFLINE: boolean = false;
+let SHOW_STATUS_HEADER: boolean = true;
+let SHOW_MENU_BUTTON: boolean = true;
+let SHOW_EMOTES_BUTTON: boolean = true;
+let SHOW_FPS: boolean = import.meta.env.DEV;
+
+if (import.meta.env.VITE_IS_OFFLINE_SINGLE_SITE === "true") {
+    LOAD_SITE_ON_START = "SINGLE-SCENE";
+    USE_OFFLINE = true;
+    SHOW_STATUS_HEADER = false;
+    SHOW_MENU_BUTTON = false;
+    SHOW_EMOTES_BUTTON = false;
+    SHOW_FPS = import.meta.env.DEV;
 }
 
 const GND_WIDTH = 50;
@@ -78,6 +69,212 @@ const PLAYER_WIDTH = 1;
 
 const ADJECTIVES = ["Brave", "Swift", "Clever", "Gentle", "Lucky", "Nimble", "Calm", "Bright"];
 const ANIMALS = ["Fox", "Otter", "Panda", "Hawk", "Wolf", "Dolphin", "Lynx", "Koala"];
+
+const SITES: HeritageSite[] = [
+    ...(import.meta.env.VITE_IS_OFFLINE_SINGLE_SITE === "true"
+        ? [
+              {
+                  id: "SINGLE-SCENE",
+                  name: "Single Scene",
+                  position: new Vector3(-15, 1, 15),
+                  description: "A single scene for auto-loading the world without need for user interaction",
+                  thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
+                  worldModelPath: "./assets/models/al-tahira-world.glb",
+                  worldModelScaling: new Vector3(2, 2, 2),
+                  worldObjects: [
+                      {
+                          id: "pot",
+                          modelPath: "./assets/models/museum-models/pot.glb",
+                          position: new Vector3(4.25, -0.75, -20.25),
+                          rotation: new Vector3(-Math.PI / 2, Math.PI / 2, 0),
+                          scaling: new Vector3(0.1, 0.1, 0.1),
+                      },
+                      {
+                          id: "column_base",
+                          modelPath: "./assets/models/museum-models/column_base.glb",
+                          position: new Vector3(-4.25, -0.8, -20.1),
+                          rotation: new Vector3(-Math.PI / 2, 0, 0),
+                          scaling: new Vector3(0.1, 0.1, 0.1),
+                      },
+                      {
+                          id: "three_humans",
+                          modelPath: "./assets/models/museum-models/three_humans.glb",
+                          position: new Vector3(-20.45, 0.5, -2.2),
+                          rotation: new Vector3(Math.PI / 2, (3 * Math.PI) / 2, 0),
+                          scaling: new Vector3(0.25, 0.25, 0.25),
+                      },
+                      {
+                          id: "black_rock",
+                          modelPath: "./assets/models/museum-models/black_rock.glb",
+                          position: new Vector3(-17.75, 0.5, -10.5),
+                          rotation: new Vector3(Math.PI / 2, 0, 0),
+                          scaling: new Vector3(0.25, 0.25, 0.25),
+                      },
+                      {
+                          id: "stone_tablet_i",
+                          modelPath: "./assets/models/museum-models/stone_tablet_i.glb",
+                          position: new Vector3(-15, 0, 13.25),
+                          rotation: new Vector3(-Math.PI / 2, Math.PI / 4, 0),
+                          scaling: new Vector3(0.075, 0.075, 0.075),
+                      },
+                      {
+                          id: "stone_tablet_ii",
+                          modelPath: "./assets/models/museum-models/stone_tablet_ii.glb",
+                          position: new Vector3(-8.05, 0.15, 17.95),
+                          rotation: new Vector3(-Math.PI / 2, (70 / 360) * 2 * Math.PI, 0),
+                          scaling: new Vector3(0.2, 0.2, 0.2),
+                      },
+                      {
+                          id: "stone_tablet_iii",
+                          modelPath: "./assets/models/museum-models/stone_tablet_iii.glb",
+                          position: new Vector3(8.25, 0.05, 18.22),
+                          rotation: new Vector3(-Math.PI / 2, (200 / 360) * (2 * Math.PI), 0),
+                          scaling: new Vector3(0.2, 0.2, 0.2),
+                      },
+                      {
+                          id: "stone_tablet_iv",
+                          modelPath: "./assets/models/museum-models/stone_tablet_iv.glb",
+                          position: new Vector3(15, -0.075, 13.5),
+                          rotation: new Vector3(-Math.PI / 2, (320 / 360) * 2 * Math.PI, 0),
+                          scaling: new Vector3(0.25, 0.25, 0.25),
+                      },
+                      {
+                          id: "church_grand_door",
+                          modelPath: "./assets/models/museum-models/church_grand_door.glb",
+                          position: new Vector3(0, 4.718, 19.701),
+                          rotation: new Vector3(-Math.PI / 2, 0, 0),
+                          scaling: new Vector3(1, 1, 1),
+                      },
+                      {
+                          id: "clay_pot",
+                          modelPath: "./assets/models/museum-models/clay_pot.glb",
+                          position: new Vector3(17.75, -1.35, -10.5),
+                          rotation: new Vector3(-Math.PI / 2, Math.PI, 0),
+                          scaling: new Vector3(0.2, 0.2, 0.2),
+                      },
+                      {
+                          id: "human_skull_ii",
+                          modelPath: "./assets/models/museum-models/human_skull_ii.glb",
+                          position: new Vector3(20.25, -1.17, -2.4),
+                          rotation: new Vector3(-Math.PI / 2, (290 / 360) * (2 * Math.PI), 0),
+                          scaling: new Vector3(0.05, 0.05, 0.05),
+                      },
+                      {
+                          id: "rusted_sword",
+                          modelPath: "./assets/models/museum-models/rusted_sword.glb",
+                          position: new Vector3(7.73, -1.42, -7.21),
+                          rotation: new Vector3(-Math.PI / 2, (135 / 360) * (2 * Math.PI), 0),
+                          scaling: new Vector3(0.09, 0.09, 0.09),
+                      },
+                      {
+                          id: "wooden_cup",
+                          modelPath: "./assets/models/museum-models/wooden_cup.glb",
+                          position: new Vector3(10.37, -1.26, 0.95),
+                          rotation: new Vector3(-Math.PI / 2, (83.6 / 360) * (2 * Math.PI), 0),
+                          scaling: new Vector3(0.05, 0.05, 0.05),
+                      },
+                      {
+                          id: "skeleton",
+                          modelPath: "./assets/models/museum-models/skeleton.glb",
+                          position: new Vector3(-7.76, -1.02, -7.15),
+                          rotation: new Vector3(-Math.PI / 2, (320 / 360) * (2 * Math.PI), 0),
+                          scaling: new Vector3(0.075, 0.075, 0.075),
+                      },
+                      {
+                          id: "clay_bowl",
+                          modelPath: "./assets/models/museum-models/clay_bowl.glb",
+                          position: new Vector3(6.05, -1.08, 8.12),
+                          rotation: new Vector3(-Math.PI / 2, 0, 0),
+                          scaling: new Vector3(0.04, 0.04, 0.04),
+                      },
+                      {
+                          id: "log_container",
+                          modelPath: "./assets/models/museum-models/log_container.glb",
+                          position: new Vector3(-6.1, -1.17, 8.23),
+                          rotation: new Vector3(-Math.PI / 2, (131 / 360) * (2 * Math.PI), 0),
+                          scaling: new Vector3(0.1, 0.1, 0.1),
+                      },
+                      {
+                          id: "fishing_net",
+                          modelPath: "./assets/models/museum-models/fishing_net.glb",
+                          position: new Vector3(-10.35, -1.18, 1.01),
+                          rotation: new Vector3(-Math.PI / 2, (-88 / 360) * (2 * Math.PI), 0),
+                          scaling: new Vector3(0.07, 0.07, 0.07),
+                      },
+                  ],
+              },
+              {
+                  id: "SINGLE-SCENE2",
+                  name: "Single Scene 2",
+                  position: new Vector3(-15, 1, 15),
+                  description: "A single scene for auto-loading the world without need for user interaction",
+                  thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
+                  worldModelPath: "./assets/models/cloister.glb",
+                  worldModelScaling: new Vector3(1, 1, 1),
+                  worldModelRotation: new Vector3(-Math.PI / 2, 0, 0),
+                  worldPlayerSpawnPosition: new Vector3(55, 0, -52),
+                  worldPlayerRotation: new Vector3(0, -Math.PI / 2, 0),
+              },
+          ]
+        : []),
+    {
+        id: "1",
+        name: "Hosh Al-Bay'ah Collection",
+        position: new Vector3(-15, 1, 15),
+        description: "A historic collection showcasing traditional architecture and cultural heritage of the region.",
+        thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
+        worldModelPath: "./assets/models/al-tahira-world.glb",
+        worldModelScaling: new Vector3(2, 2, 2),
+        websiteUrl: "https://alqaba.com/al-tahira-church",
+        virtualWalkthroughUrl: "https://www.alqaba.com/al-tahira-church/walkthrough",
+        sketchfabUrl:
+            "https://sketchfab.com/HusseinYaseen/collections/hosh-al-bayaah-churchs-67ed28d04539400b87073ef37b3218d8",
+    },
+    {
+        id: "2",
+        name: "Old City of Mosul",
+        position: new Vector3(-12, 1, 11),
+        description: "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
+        thumbnailPath: "./assets/sites/mosul.webp",
+        virtualWalkthroughUrl: "https://www.alqaba.com/old-town/walkthrough",
+        websiteUrl: "https://www.alqaba.com/old-town",
+    },
+    {
+        id: "3",
+        name: "Erbil Citadel",
+        position: new Vector3(-7.5, 1, 12.5),
+        description: "One of the oldest continuously inhabited settlements in the world, a UNESCO World Heritage site.",
+        thumbnailPath: "./assets/sites/erbil.png",
+    },
+    {
+        id: "4",
+        name: "Baghdad Museum",
+        position: new Vector3(-1.5, 1, -1),
+        description: "Home to priceless artifacts from Mesopotamian civilizations and Iraq's rich cultural history.",
+        thumbnailPath: "./assets/sites/baghdad-museum.webp",
+        sketchfabUrl: "https://sketchfab.com/HusseinYaseen/collections/iraqi-museum-b2f69baa92d84b50a90711d5db7d7f18",
+    },
+    {
+        id: "5",
+        name: "Uruk City",
+        position: new Vector3(0, 1, -15),
+        description: "Ancient Sumerian city-state, birthplace of writing and one of the world's first great cities.",
+        thumbnailPath: "./assets/sites/uruk.jpg",
+        sketchfabUrl: "https://sketchfab.com/HusseinYaseen/collections/uruk-city-0281a1d074b74daf937ccd853b9ec4fc",
+    },
+    {
+        id: "6",
+        name: "Al-Chibayish Marshlands",
+        position: new Vector3(15, 1, -19),
+        description: "Unique wetland ecosystem, home to the Marsh Arabs and diverse wildlife in southern Iraq.",
+        thumbnailPath: "./assets/sites/marshlands.png",
+        modelPath: "./assets/models/mudhif.glb",
+        websiteUrl: "https://alqaba.com/iraq-marshes",
+        virtualWalkthroughUrl: "https://www.alqaba.com/iraq-marshes/walkthrough",
+        sketchfabUrl:
+            "https://sketchfab.com/HusseinYaseen/collections/al-chibayish-marshes-b57822cc6dee4a698669e1e08c1e1f4b",
+    },
+];
 
 let allowedEmotes: string[] = [];
 
@@ -116,7 +313,7 @@ const setupSkybox = function (scene: Scene) {
     scene.createDefaultSkybox(skyBoxTexture, true, 1000);
 };
 
-const createPlayerMesh = function (scene: Scene) {
+const createPlayerMesh = function (scene: Scene, worldPlayerSpawnPosition?: Vector3, worldPlayerRotation?: Vector3) {
     const playerMesh = MeshBuilder.CreateCapsule(
         "player",
         {
@@ -126,6 +323,8 @@ const createPlayerMesh = function (scene: Scene) {
         scene
     );
     playerMesh.position = new Vector3(0, PLAYER_HEIGHT / 2, 0);
+    if (worldPlayerSpawnPosition) playerMesh.position.addInPlace(worldPlayerSpawnPosition);
+    if (worldPlayerRotation) playerMesh.rotation.addInPlace(worldPlayerRotation);
 
     // Make player mesh transparent
     const playerMaterial = new StandardMaterial("player_mat", scene);
@@ -264,8 +463,15 @@ const showEmote = (sessionId: string, emote: string, scene: Scene, parentMesh: M
     }, 3000);
 };
 
-const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Room, nickname: string) {
-    const playerMesh = createPlayerMesh(scene);
+const setupCamera = function (
+    canvas: HTMLCanvasElement,
+    scene: Scene,
+    room: Room,
+    nickname: string,
+    worldPlayerSpawnPosition?: Vector3,
+    worldPlayerRotation?: Vector3
+) {
+    const playerMesh = createPlayerMesh(scene, worldPlayerSpawnPosition, worldPlayerRotation);
 
     // Create camera
     const camera = new UniversalCamera("player_camera", new Vector3(0, PLAYER_HEIGHT, 0), scene);
@@ -665,8 +871,8 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
             lastTouchY = touch.clientY;
 
             // Rotate camera based on touch movement
-            camera.rotation.y -= deltaX * lookSensitivity;
-            camera.rotation.x -= deltaY * lookSensitivity;
+            camera.rotation.y += deltaX * lookSensitivity;
+            camera.rotation.x += deltaY * lookSensitivity;
 
             // Clamp vertical look
             camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
@@ -756,13 +962,78 @@ const setupCamera = function (canvas: HTMLCanvasElement, scene: Scene, room: Roo
     return { camera, playerMesh, toggleGameMenu };
 };
 
-const createScene = async function (nickname: string, worldModelPath?: string | null) {
+const createLoadingScreen = () => {
+    const loadingScreen = document.createElement("div");
+    loadingScreen.id = "loading-screen";
+    loadingScreen.style.position = "fixed";
+    loadingScreen.style.inset = "0";
+    loadingScreen.style.background = "rgba(0, 0, 0, 0.95)";
+    loadingScreen.style.display = "flex";
+    loadingScreen.style.flexDirection = "column";
+    loadingScreen.style.alignItems = "center";
+    loadingScreen.style.justifyContent = "center";
+    loadingScreen.style.zIndex = "10000";
+    loadingScreen.style.fontFamily = "sans-serif";
+    loadingScreen.style.color = "white";
+
+    const title = document.createElement("h2");
+    title.textContent = "Loading...";
+    title.style.marginBottom = "30px";
+    title.style.fontSize = "24px";
+    loadingScreen.appendChild(title);
+
+    const progressContainer = document.createElement("div");
+    progressContainer.style.width = "300px";
+    progressContainer.style.height = "20px";
+    progressContainer.style.background = "rgba(255, 255, 255, 0.1)";
+    progressContainer.style.borderRadius = "10px";
+    progressContainer.style.overflow = "hidden";
+    progressContainer.style.marginBottom = "15px";
+
+    const progressBar = document.createElement("div");
+    progressBar.id = "loading-progress-bar";
+    progressBar.style.width = "0%";
+    progressBar.style.height = "100%";
+    progressBar.style.background = "linear-gradient(90deg, #3b82f6, #2563eb)";
+    progressBar.style.transition = "width 0.3s ease";
+    progressContainer.appendChild(progressBar);
+
+    const progressText = document.createElement("div");
+    progressText.id = "loading-progress-text";
+    progressText.textContent = "0%";
+    progressText.style.fontSize = "14px";
+    progressText.style.opacity = "0.8";
+
+    loadingScreen.appendChild(progressContainer);
+    loadingScreen.appendChild(progressText);
+
+    document.body.appendChild(loadingScreen);
+
+    return {
+        updateProgress: (percent: number, text?: string) => {
+            progressBar.style.width = `${percent}%`;
+            progressText.textContent = text || `${Math.round(percent)}%`;
+        },
+        remove: () => {
+            loadingScreen.style.opacity = "0";
+            loadingScreen.style.transition = "opacity 0.5s ease";
+            setTimeout(() => loadingScreen.remove(), 500);
+        },
+    };
+};
+
+const createScene = async function (
+    nickname: string,
+    worldModelPath?: string | null,
+    worldModelScaling?: Vector3,
+    worldModelRotation?: Vector3,
+    worldPlayerSpawnPosition?: Vector3,
+    worldPlayerRotation?: Vector3
+) {
     const scene = setupScene(engine);
 
-    const gravityVector = new Vector3(0, -9.81, 0);
-    const havokInstance = await HavokPhysics();
-    const physicsPlugin = new HavokPlugin(true, havokInstance);
-    scene.enablePhysics(gravityVector, physicsPlugin);
+    // Show loading screen
+    const loadingScreen = createLoadingScreen();
 
     // Create connection status header
     const statusHeader = document.createElement("div");
@@ -781,7 +1052,7 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
     statusHeader.style.display = "flex";
     statusHeader.style.alignItems = "center";
     statusHeader.style.gap = "12px";
-    document.body.appendChild(statusHeader);
+    if (SHOW_STATUS_HEADER) document.body.appendChild(statusHeader);
 
     let currentPlayerCount = 0;
 
@@ -801,144 +1072,151 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
 
     const client = new Client(import.meta.env.VITE_SERVER_URL);
     let room: Room | null;
-    try {
-        room = await client.joinOrCreate("central", { nickname, siteId: selectedSite?.id || "map" });
-        currentPlayerSessionId = room.sessionId;
-        room.send("setName", { name: nickname });
-        const $ = getStateCallbacks<PlayerRoomType>(room);
 
-        // Request player count and setup periodic updates
-        const requestPlayerCount = () => {
-            room?.send("getPlayerCount");
-        };
+    if (!USE_OFFLINE) {
+        try {
+            room = await client.joinOrCreate("central", { nickname, siteId: selectedSite?.id || "map" });
+            currentPlayerSessionId = room.sessionId;
+            room.send("setName", { name: nickname });
+            const $ = getStateCallbacks<PlayerRoomType>(room);
 
-        room.onMessage("playerCount", (message: { count: number }) => {
-            updateStatus("ONLINE", message.count);
-        });
+            // Request player count and setup periodic updates
+            const requestPlayerCount = () => {
+                room?.send("getPlayerCount");
+            };
 
-        // Request and listen for allowed emotes
-        room.send("getAllowedEmotes");
-        room.onMessage("allowedEmotes", (message: { emotes: string[] }) => {
-            allowedEmotes = message.emotes;
-        });
+            room.onMessage("playerCount", (message: { count: number }) => {
+                updateStatus("ONLINE", message.count);
+            });
 
-        // Listen for player emotes
-        room.onMessage("playerEmote", (message: { sessionId: string; emote: string }) => {
-            // Don't show own emote again (already shown locally)
-            if (message.sessionId === room?.sessionId) return;
+            // Request and listen for allowed emotes
+            room.send("getAllowedEmotes");
+            room.onMessage("allowedEmotes", (message: { emotes: string[] }) => {
+                allowedEmotes = message.emotes;
+            });
 
-            const entity = playerEntities[message.sessionId];
-            if (entity) {
-                showEmote(message.sessionId, message.emote, scene, entity);
-            }
-        });
+            // Listen for player emotes
+            room.onMessage("playerEmote", (message: { sessionId: string; emote: string }) => {
+                // Don't show own emote again (already shown locally)
+                if (message.sessionId === room?.sessionId) return;
 
-        // Initial player count request
-        requestPlayerCount();
-
-        // Update player count every 5 seconds
-        const playerCountInterval = setInterval(() => {
-            if (room?.connection.isOpen) {
-                requestPlayerCount();
-            }
-        }, 5000);
-
-        // Update status to online when connected
-        updateStatus("ONLINE");
-
-        // Listen for disconnect events
-        room.onLeave((code) => {
-            console.log("Disconnected from server:", code);
-            clearInterval(playerCountInterval);
-            updateStatus("OFFLINE");
-        });
-
-        room.onError((code, message) => {
-            console.error("Room error:", code, message);
-            if (playerCountInterval) clearInterval(playerCountInterval);
-            updateStatus("OFFLINE");
-        });
-
-        $(room.state).players.onAdd(async (player, sessionId) => {
-            const isCurrentPlayer = sessionId === room?.sessionId;
-
-            // create player Sphere
-            if (isCurrentPlayer) {
-                playerMesh.position.set(player.x, player.y, player.z);
-            } else {
-                // Load eva.gltf model for remote players
-                const modelData = await ImportMeshAsync("./assets/models/eva.glb", scene);
-                const rootMesh = modelData.meshes[0];
-
-                modelData.animationGroups.forEach((animationGroup) => {
-                    animationGroup.stop();
-                });
-
-                // Create parent container for positioning
-                const remotePlayerContainer = new TransformNode(`player-${sessionId}`, scene);
-                remotePlayerContainer.position.set(player.x, player.y, player.z);
-                remotePlayerContainer.scaling = new Vector3(1, 1, 1);
-
-                // Parent all meshes to the container
-                modelData.meshes.forEach((mesh) => {
-                    if (mesh.parent === null) {
-                        mesh.parent = remotePlayerContainer;
-                    }
-                    mesh.isPickable = false;
-                });
-
-                playerEntities[sessionId] = remotePlayerContainer;
-                playerNextPosition[sessionId] = remotePlayerContainer.position.clone();
-                playerNextRotation[sessionId] = remotePlayerContainer.rotationQuaternion || Quaternion.Identity();
-
-                const label = createNameLabel(player.name ?? "Player", scene);
-                label.parent = remotePlayerContainer;
-                playerLabels[sessionId] = label;
-            }
-
-            $(player).onChange(function () {
-                if (isCurrentPlayer) {
-                } else {
-                    playerNextPosition[sessionId].set(player.x, player.y, player.z);
-                    if (
-                        player.rotX !== undefined &&
-                        player.rotY !== undefined &&
-                        player.rotZ !== undefined &&
-                        player.rotW !== undefined
-                    ) {
-                        playerNextRotation[sessionId] = new Quaternion(
-                            player.rotX,
-                            player.rotY,
-                            player.rotZ,
-                            player.rotW
-                        );
-                    }
-                    if (player.name) {
-                        updateNameLabel(playerLabels[sessionId], player.name);
-                    }
+                const entity = playerEntities[message.sessionId];
+                if (entity) {
+                    showEmote(message.sessionId, message.emote, scene, entity);
                 }
             });
-        });
 
-        $(room.state).players.onRemove(function (player, sessionId) {
-            playerEntities[sessionId].dispose();
-            delete playerEntities[sessionId];
-            delete playerNextRotation[sessionId];
-            playerLabels[sessionId]?.dispose();
-            delete playerLabels[sessionId];
+            // Initial player count request
+            requestPlayerCount();
 
-            // Clean up emote bubble and timeout
-            if (playerEmoteTimeouts[sessionId]) {
-                clearTimeout(playerEmoteTimeouts[sessionId]);
-                delete playerEmoteTimeouts[sessionId];
-            }
-            if (playerEmotes[sessionId]) {
-                playerEmotes[sessionId].dispose();
-                delete playerEmotes[sessionId];
-            }
-        });
-    } catch (error) {
-        console.error("Room error:", error);
+            // Update player count every 5 seconds
+            const playerCountInterval = setInterval(() => {
+                if (room?.connection.isOpen) {
+                    requestPlayerCount();
+                }
+            }, 5000);
+
+            // Update status to online when connected
+            updateStatus("ONLINE");
+
+            // Listen for disconnect events
+            room.onLeave((code) => {
+                console.log("Disconnected from server:", code);
+                clearInterval(playerCountInterval);
+                updateStatus("OFFLINE");
+            });
+
+            room.onError((code, message) => {
+                console.error("Room error:", code, message);
+                if (playerCountInterval) clearInterval(playerCountInterval);
+                updateStatus("OFFLINE");
+            });
+
+            $(room.state).players.onAdd(async (player, sessionId) => {
+                const isCurrentPlayer = sessionId === room?.sessionId;
+
+                // create player Sphere
+                if (isCurrentPlayer) {
+                    playerMesh.position.set(player.x, player.y, player.z);
+                } else {
+                    // Load eva.gltf model for remote players
+                    const modelData = await ImportMeshAsync("./assets/models/eva.glb", scene);
+                    const rootMesh = modelData.meshes[0];
+
+                    modelData.animationGroups.forEach((animationGroup) => {
+                        animationGroup.stop();
+                    });
+
+                    // Create parent container for positioning
+                    const remotePlayerContainer = new TransformNode(`player-${sessionId}`, scene);
+                    remotePlayerContainer.position.set(player.x, player.y, player.z);
+                    remotePlayerContainer.scaling = new Vector3(1, 1, 1);
+
+                    // Parent all meshes to the container
+                    modelData.meshes.forEach((mesh) => {
+                        if (mesh.parent === null) {
+                            mesh.parent = remotePlayerContainer;
+                        }
+                        mesh.isPickable = false;
+                    });
+
+                    playerEntities[sessionId] = remotePlayerContainer;
+                    playerNextPosition[sessionId] = remotePlayerContainer.position.clone();
+                    playerNextRotation[sessionId] = remotePlayerContainer.rotationQuaternion || Quaternion.Identity();
+
+                    const label = createNameLabel(player.name ?? "Player", scene);
+                    label.parent = remotePlayerContainer;
+                    playerLabels[sessionId] = label;
+                }
+
+                $(player).onChange(function () {
+                    if (isCurrentPlayer) {
+                    } else {
+                        playerNextPosition[sessionId].set(player.x, player.y, player.z);
+                        if (
+                            player.rotX !== undefined &&
+                            player.rotY !== undefined &&
+                            player.rotZ !== undefined &&
+                            player.rotW !== undefined
+                        ) {
+                            playerNextRotation[sessionId] = new Quaternion(
+                                player.rotX,
+                                player.rotY,
+                                player.rotZ,
+                                player.rotW
+                            );
+                        }
+                        if (player.name) {
+                            updateNameLabel(playerLabels[sessionId], player.name);
+                        }
+                    }
+                });
+            });
+
+            $(room.state).players.onRemove(function (player, sessionId) {
+                playerEntities[sessionId].dispose();
+                delete playerEntities[sessionId];
+                delete playerNextRotation[sessionId];
+                playerLabels[sessionId]?.dispose();
+                delete playerLabels[sessionId];
+
+                // Clean up emote bubble and timeout
+                if (playerEmoteTimeouts[sessionId]) {
+                    clearTimeout(playerEmoteTimeouts[sessionId]);
+                    delete playerEmoteTimeouts[sessionId];
+                }
+                if (playerEmotes[sessionId]) {
+                    playerEmotes[sessionId].dispose();
+                    delete playerEmotes[sessionId];
+                }
+            });
+        } catch (error) {
+            console.error("Room error:", error);
+            updateStatus("OFFLINE");
+        }
+    } else {
+        // Offline mode - set default emotes and update status
+        allowedEmotes = ["😊", "👍", "❤️", "😂", "😮", "👋", "🎉", "🤔", "😎"];
         updateStatus("OFFLINE");
     }
 
@@ -958,7 +1236,14 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
         document.body.appendChild(leftContainer);
     }
 
-    const { camera, playerMesh, toggleGameMenu } = setupCamera(canvas, scene, room!, nickname);
+    const { camera, playerMesh, toggleGameMenu } = setupCamera(
+        canvas,
+        scene,
+        room!,
+        nickname,
+        worldPlayerSpawnPosition,
+        worldPlayerRotation
+    );
     setupLight(scene);
     setupSkybox(scene);
 
@@ -986,7 +1271,7 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
         menuButton.style.borderColor = "rgba(255, 255, 255, 0.3)";
     });
     menuButton.addEventListener("click", toggleGameMenu);
-    leftContainer.appendChild(menuButton);
+    if (SHOW_MENU_BUTTON) leftContainer.appendChild(menuButton);
 
     // Create emotes button
     const emotesButton = document.createElement("button");
@@ -1114,7 +1399,7 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
     };
 
     emotesButton.addEventListener("click", toggleEmotesPanel);
-    leftContainer.appendChild(emotesButton);
+    if (SHOW_EMOTES_BUTTON) leftContainer.appendChild(emotesButton);
 
     // Add keyboard shortcut for emotes panel (E key)
     window.addEventListener("keydown", (e) => {
@@ -1132,14 +1417,26 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
 
     let ground: AbstractMesh | TransformNode;
     if (worldModelPath) {
-        // Load custom world model
+        // Load custom world model with progress tracking
+        loadingScreen.updateProgress(10, "Loading world model...");
+
         const worldModel = await ImportMeshAsync(worldModelPath, scene);
         const rootMesh = worldModel.meshes[0];
 
+        loadingScreen.updateProgress(50, "Setting up world...");
+
+        worldModel.animationGroups.forEach((animationGroup) => {
+            animationGroup.stop();
+        });
+
         // Create parent transform node for the world model
         const worldParent = new TransformNode("world_parent", scene);
-        worldParent.rotation.y = 0;
-        worldParent.scaling = new Vector3(2, 2, 2);
+        if (worldModelRotation) {
+            worldParent.rotation = worldModelRotation;
+        } else {
+            worldParent.rotation.y = 0;
+        }
+        worldParent.scaling = worldModelScaling ?? new Vector3(1, 1, 1);
 
         if (rootMesh) {
             // Calculate bounding box to find center
@@ -1159,13 +1456,66 @@ const createScene = async function (nickname: string, worldModelPath?: string | 
         });
 
         ground = worldParent;
-        // ground.checkCollisions = true;
+
+        // Load worldObjects if they exist for this site
+        if (selectedSite && selectedSite.worldObjects && selectedSite.worldObjects.length > 0) {
+            const totalObjects = selectedSite.worldObjects.length;
+
+            for (let i = 0; i < totalObjects; i++) {
+                const worldObj = selectedSite.worldObjects[i];
+
+                // Calculate progress: 50% already done from world model, divide remaining 50% among objects
+                const objectProgress = 50 + ((i + 1) / totalObjects) * 50;
+                loadingScreen.updateProgress(objectProgress, `Loading objects... (${i + 1}/${totalObjects})`);
+
+                // Load the object model
+                const objModel = await ImportMeshAsync(worldObj.modelPath, scene);
+                const objRootMesh = objModel.meshes[0];
+
+                // Create parent transform node for the object
+                const objParent = new TransformNode(`world_object_${worldObj.id}`, scene);
+
+                if (objRootMesh) {
+                    // Calculate bounding box to find center
+                    const boundingInfo = objRootMesh.getHierarchyBoundingVectors();
+                    const center = boundingInfo.max.add(boundingInfo.min).scale(0.5);
+
+                    // Move model so its center is at origin
+                    objRootMesh.position.subtractInPlace(center);
+                }
+
+                // Parent all object meshes to the transform node
+                objModel.meshes.forEach((mesh) => {
+                    if (mesh.parent === null) {
+                        mesh.parent = objParent;
+                    }
+                    mesh.checkCollisions = true;
+                });
+
+                // Apply position and rotation from worldObjects config
+                objParent.position.copyFrom(worldObj.position);
+                objParent.rotation.copyFrom(worldObj.rotation);
+                objParent.scaling.copyFrom(worldObj.scaling);
+
+                // Parent the object to the world so it scales and rotates with it
+                objParent.parent = worldParent;
+            }
+        }
+
+        loadingScreen.updateProgress(100, "Complete!");
     } else {
         // Use default ground plane
+        loadingScreen.updateProgress(50, "Creating ground...");
         const defaultWorld = MeshBuilder.CreateGround("ground", { width: GND_WIDTH, height: GND_HEIGHT }, scene);
         defaultWorld.checkCollisions = true;
         ground = defaultWorld;
+        loadingScreen.updateProgress(100, "Complete!");
     }
+
+    // Hide loading screen
+    setTimeout(() => {
+        loadingScreen.remove();
+    }, 500);
 
     // Remote Movement Loop
     scene.registerBeforeRender(() => {
@@ -1364,6 +1714,7 @@ const createMapScene = async () => {
     sidePanel.classList.add("custom-scrollbar");
 
     leftContainer.appendChild(sidePanel);
+    
 
     // Panel header
     const panelHeader = document.createElement("h2");
@@ -1399,180 +1750,10 @@ const createMapScene = async () => {
     experienceContainer.classList.add("custom-scrollbar");
     document.body.appendChild(experienceContainer);
 
-    // Create site title
-    const siteTitle = document.createElement("h2");
-    siteTitle.style.margin = "0";
-    siteTitle.style.fontSize = "24px";
-    siteTitle.style.fontWeight = "bold";
-    siteTitle.style.color = "white";
-    experienceContainer.appendChild(siteTitle);
-
-    // Create description text
-    const descriptionBox = document.createElement("p");
-    descriptionBox.style.margin = "0";
-    descriptionBox.style.fontSize = "15px";
-    descriptionBox.style.lineHeight = "1.6";
-    descriptionBox.style.color = "rgba(255, 255, 255, 0.9)";
-    experienceContainer.appendChild(descriptionBox);
-
-    // Create features section
-    const featuresSection = document.createElement("div");
-    featuresSection.style.display = "flex";
-    featuresSection.style.flexDirection = "column";
-    featuresSection.style.gap = "12px";
-    featuresSection.style.marginTop = "8px";
-    experienceContainer.appendChild(featuresSection);
-
-    const featuresTitle = document.createElement("h3");
-    featuresTitle.textContent = "Available Features";
-    featuresTitle.style.margin = "0 0 8px 0";
-    featuresTitle.style.fontSize = "16px";
-    featuresTitle.style.fontWeight = "600";
-    featuresTitle.style.color = "white";
-    featuresSection.appendChild(featuresTitle);
-
-    const createFeatureItem = (label: string, available: boolean, url?: string) => {
-        const item = document.createElement("div");
-        item.style.display = "flex";
-        item.style.flexDirection = "column";
-        item.style.gap = "8px";
-        item.style.fontSize = "14px";
-        item.style.color = available ? "rgba(255, 255, 255, 0.9)" : "rgba(255, 255, 255, 0.4)";
-        item.style.padding = "12px";
-        item.style.background = "rgba(255, 255, 255, 0.05)";
-        item.style.borderRadius = "8px";
-
-        const header = document.createElement("div");
-        header.style.display = "flex";
-        header.style.alignItems = "center";
-        header.style.gap = "10px";
-
-        const checkmark = document.createElement("span");
-        checkmark.textContent = available ? "✓" : "✗";
-        checkmark.style.fontSize = "18px";
-        checkmark.style.fontWeight = "bold";
-        checkmark.style.color = available ? "#10b981" : "rgba(255, 255, 255, 0.3)";
-        header.appendChild(checkmark);
-
-        const text = document.createElement("span");
-        text.textContent = label;
-        text.style.fontWeight = "600";
-        header.appendChild(text);
-
-        item.appendChild(header);
-
-        if (url || label.includes("Interactive")) {
-            const linkText = document.createElement("p");
-            linkText.style.margin = "0 0 4px 28px";
-            linkText.style.fontSize = "13px";
-            linkText.style.color = "rgba(255, 255, 255, 0.7)";
-
-            if (label.includes("Sketchfab")) {
-                linkText.textContent = "You can view the Sketchfab collection at:";
-            } else if (label.includes("Website")) {
-                linkText.textContent = "You can visit the external website at:";
-            } else if (label.includes("Virtual Walkthrough")) {
-                linkText.textContent = "You can experience the virtual walkthrough at:";
-            } else if (label.includes("Interactive")) {
-                linkText.textContent =
-                    'You can immerse yourself in the interactive experience by clicking "Start Experience" below.';
-            }
-            item.appendChild(linkText);
-
-            if (url) {
-                const link = document.createElement("a");
-                link.href = url;
-                link.target = "_blank";
-                link.rel = "noopener noreferrer";
-                link.textContent = url;
-                link.style.color = "#60a5fa";
-                link.style.fontSize = "13px";
-                link.style.textDecoration = "none";
-                link.style.marginLeft = "28px";
-                link.style.wordBreak = "break-all";
-                link.style.transition = "color 0.2s ease";
-                link.addEventListener("mouseenter", () => {
-                    link.style.color = "#93c5fd";
-                });
-                link.addEventListener("mouseleave", () => {
-                    link.style.color = "#60a5fa";
-                });
-                item.appendChild(link);
-            }
-        }
-
-        return item;
-    };
-
-    const websiteFeature = createFeatureItem("External Website", false);
-    const virtualWalkthroughFeature = createFeatureItem("Virtual Walkthrough", false);
-    const sketchfabFeature = createFeatureItem("Sketchfab 3D Collection", false);
-    const interactiveFeature = createFeatureItem("Interactive Experience", false);
-
-    featuresSection.appendChild(websiteFeature);
-    featuresSection.appendChild(virtualWalkthroughFeature);
-    featuresSection.appendChild(sketchfabFeature);
-    featuresSection.appendChild(interactiveFeature);
-
-    // Create Start Experience button (only visible if interactive experience exists)
-    const startExperienceBtn = document.createElement("button");
-    startExperienceBtn.textContent = "Start Experience";
-    startExperienceBtn.style.width = "100%";
-    startExperienceBtn.style.padding = "12px 32px";
-    startExperienceBtn.style.fontSize = "16px";
-    startExperienceBtn.style.fontWeight = "bold";
-    startExperienceBtn.style.background = "#3b82f6";
-    startExperienceBtn.style.color = "white";
-    startExperienceBtn.style.border = "none";
-    startExperienceBtn.style.borderRadius = "8px";
-    startExperienceBtn.style.cursor = "pointer";
-    startExperienceBtn.style.transition = "all 0.2s ease";
-    startExperienceBtn.style.marginTop = "8px";
-    startExperienceBtn.addEventListener("mouseenter", () => {
-        startExperienceBtn.style.background = "#2563eb";
-    });
-    startExperienceBtn.addEventListener("mouseleave", () => {
-        startExperienceBtn.style.background = "#3b82f6";
-    });
-    experienceContainer.appendChild(startExperienceBtn);
-
     let currentFocusedSite: string | null = null;
 
-    // Update panel with site data
     const updatePanelWithSite = (site: HeritageSite) => {
-        siteTitle.textContent = site.name;
-        descriptionBox.textContent = site.description;
-
-        // Clear existing features
-        while (featuresSection.children.length > 1) {
-            featuresSection.removeChild(featuresSection.lastChild!);
-        }
-
-        // Add only available features
-        const hasWebsite = !!site.websiteUrl;
-        const hasVirtualWalkthrough = !!site.virtualWalkthroughUrl;
-        const hasSketchfab = !!site.sketchfabUrl;
-        const hasInteractive = !!site.worldModelPath;
-
-        if (hasWebsite) {
-            featuresSection.appendChild(createFeatureItem("External Website", true, site.websiteUrl));
-        }
-        if (hasVirtualWalkthrough) {
-            featuresSection.appendChild(createFeatureItem("Virtual Walkthrough", true, site.virtualWalkthroughUrl));
-        }
-        if (hasSketchfab) {
-            featuresSection.appendChild(createFeatureItem("Sketchfab 3D Collection", true, site.sketchfabUrl));
-        }
-        if (hasInteractive) {
-            featuresSection.appendChild(createFeatureItem("Interactive Experience", true));
-        }
-
-        // Show/hide features section if no features available
-        featuresSection.style.display =
-            hasWebsite || hasVirtualWalkthrough || hasSketchfab || hasInteractive ? "flex" : "none";
-
-        // Show/hide start button based on interactive availability
-        startExperienceBtn.style.display = hasInteractive ? "block" : "none";
+        experienceContainer.site = site;
     };
 
     // Reusable function to animate camera focus
@@ -1655,7 +1836,7 @@ const createMapScene = async () => {
     startExperienceBtn.addEventListener("click", async () => {
         if (currentFocusedSite) {
             // Store the selected site
-            const site = sites.find((s) => s.id === currentFocusedSite);
+            const site = SITES.find((s) => s.id === currentFocusedSite);
             selectedSite = site || null;
 
             // Clean up map scene UI
@@ -1753,73 +1934,10 @@ const createMapScene = async () => {
     // Initialize cloud transition system (uses same smoke.png texture)
     initCloudTransition(scene, fogWallParticleSystem);
 
-    const sites: HeritageSite[] = [
-        {
-            id: "1",
-            name: "Hosh Al-Bay'ah Collection",
-            position: new Vector3(-15, 1, 15),
-            description:
-                "A historic collection showcasing traditional architecture and cultural heritage of the region.",
-            thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
-            worldModelPath: "./assets/models/al-tahira-world.glb",
-            websiteUrl: "https://alqaba.com/al-tahira-church",
-            virtualWalkthroughUrl: "https://www.alqaba.com/al-tahira-church/walkthrough",
-            sketchfabUrl:
-                "https://sketchfab.com/HusseinYaseen/collections/hosh-al-bayaah-churchs-67ed28d04539400b87073ef37b3218d8",
-        },
-        {
-            id: "2",
-            name: "Old City of Mosul",
-            position: new Vector3(-12, 1, 11),
-            description:
-                "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
-            thumbnailPath: "./assets/sites/mosul.webp",
-            virtualWalkthroughUrl: "https://www.alqaba.com/old-town/walkthrough",
-            websiteUrl: "https://www.alqaba.com/old-town",
-        },
-        {
-            id: "3",
-            name: "Erbil Citadel",
-            position: new Vector3(-7.5, 1, 12.5),
-            description:
-                "One of the oldest continuously inhabited settlements in the world, a UNESCO World Heritage site.",
-            thumbnailPath: "./assets/sites/erbil.png",
-        },
-        {
-            id: "4",
-            name: "Baghdad Museum",
-            position: new Vector3(-1.5, 1, -1),
-            description:
-                "Home to priceless artifacts from Mesopotamian civilizations and Iraq's rich cultural history.",
-            thumbnailPath: "./assets/sites/baghdad-museum.webp",
-            sketchfabUrl:
-                "https://sketchfab.com/HusseinYaseen/collections/iraqi-museum-b2f69baa92d84b50a90711d5db7d7f18",
-        },
-        {
-            id: "5",
-            name: "Uruk City",
-            position: new Vector3(0, 1, -15),
-            description:
-                "Ancient Sumerian city-state, birthplace of writing and one of the world's first great cities.",
-            thumbnailPath: "./assets/sites/uruk.jpg",
-            sketchfabUrl: "https://sketchfab.com/HusseinYaseen/collections/uruk-city-0281a1d074b74daf937ccd853b9ec4fc",
-        },
-        {
-            id: "6",
-            name: "Al-Chibayish Marshlands",
-            position: new Vector3(15, 1, -19),
-            description: "Unique wetland ecosystem, home to the Marsh Arabs and diverse wildlife in southern Iraq.",
-            thumbnailPath: "./assets/sites/marshlands.png",
-            modelPath: "./assets/models/mudhif.glb",
-            websiteUrl: "https://alqaba.com/iraq-marshes",
-            virtualWalkthroughUrl: "https://www.alqaba.com/iraq-marshes/walkthrough",
-            sketchfabUrl:
-                "https://sketchfab.com/HusseinYaseen/collections/al-chibayish-marshes-b57822cc6dee4a698669e1e08c1e1f4b",
-        },
-    ];
+    
 
     // Populate side panel with sites
-    sites.forEach((site) => {
+    SITES.forEach((site) => {
         const siteCard = document.createElement("div");
         siteCard.style.background = "rgba(255, 255, 255, 0.1)";
         siteCard.style.borderRadius = "8px";
@@ -1903,7 +2021,7 @@ const createMapScene = async () => {
     // Track site meshes for timeline visibility control
     const siteClickBoxes = new Map<string, AbstractMesh[]>();
 
-    sites.forEach(async (site) => {
+    SITES.forEach(async (site) => {
         // Create invisible clickable box for all sites (for detecting clicks)
         const clickBox = MeshBuilder.CreateBox(`site-${site.id}`, { size: 2 }, scene);
         clickBox.position.copyFrom(site.position);
@@ -1970,7 +2088,7 @@ const createMapScene = async () => {
             currentFocusedSite = target;
 
             // Find and display site description
-            const siteData = sites.find((s) => s.id === target);
+            const siteData = SITES.find((s) => s.id === target);
             if (siteData) {
                 // Populate panel with site data
                 updatePanelWithSite(siteData);
@@ -2044,15 +2162,48 @@ const createMapScene = async () => {
 
 const startGame = async (nickname: string) => {
     activeScene?.dispose();
-    activeScene = await createScene(nickname, selectedSite?.worldModelPath);
+    activeScene = await createScene(
+        nickname,
+        selectedSite?.worldModelPath,
+        selectedSite?.worldModelScaling,
+        selectedSite?.worldModelRotation,
+        selectedSite?.worldPlayerSpawnPosition,
+        selectedSite?.worldPlayerRotation
+    );
 };
 
 registerBuiltInLoaders();
-activeScene = await createMapScene();
+if (LOAD_SITE_ON_START === null) {
+    activeScene = await createMapScene();
+} else {
+    selectedSite = SITES.find((s) => s.id === LOAD_SITE_ON_START) || null;
+
+    if (selectedSite) {
+        // Clean up map scene UI elements
+        const leftContainer = document.querySelector('[data-ui-container="left"]');
+        leftContainer?.remove();
+        const experienceContainer = document.querySelector("site-info-panel");
+        experienceContainer?.remove();
+
+        // Dispose the map scene
+        activeScene?.dispose();
+
+        // Start game with randomly generated name
+        const nickname = generateFriendlyName();
+        activeScene = await createScene(
+            nickname,
+            selectedSite.worldModelPath,
+            selectedSite.worldModelScaling,
+            selectedSite.worldModelRotation,
+            selectedSite.worldPlayerSpawnPosition,
+            selectedSite.worldPlayerRotation
+        );
+    }
+}
 
 // Create FPS counter for debugging (only in dev mode)
 let fpsDisplay: HTMLDivElement | null = null;
-if (import.meta.env.DEV) {
+if (SHOW_FPS) {
     fpsDisplay = document.createElement("div");
     fpsDisplay.style.position = "fixed";
     fpsDisplay.style.top = "60px";

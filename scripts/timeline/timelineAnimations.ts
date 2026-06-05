@@ -112,9 +112,8 @@ export const updateSiteVisibility = (
             easing.setEasingMode(EasingFunction.EASINGMODE_EASEINOUT);
             visAnim.setEasingFunction(easing);
 
-            // Preserve existing animations if any, and append the new one
-            mesh.animations = mesh.animations || [];
-            mesh.animations.push(visAnim);
+            // Do not accumulate animations on the mesh object
+            mesh.animations = [visAnim];
             
             scene.beginDirectAnimation(mesh, [visAnim], 0, 90, false);
         }

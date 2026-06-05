@@ -33,10 +33,10 @@ let isTransitioning = false;
 let audioCtx: AudioContext | null = null;
 
 // Timing (milliseconds)
-// The wave takes ~1.75s to reach the center, covers it for ~0.6s, and takes ~1.5s to roll out.
-const EMIT_DURATION_MS = 600;    // How long we spawn particles to build the wave (controls pause length)
-const CHANGE_ERA_MS = 2000;      // When to change era (safely in the middle of the cover)
-const TOTAL_DURATION_MS = 4000;  // Total transition time
+// The storm travels very fast: reaches center in ~0.9s, covers it for ~0.5s, rolls out by ~2.2s.
+const EMIT_DURATION_MS = 500;    // How long we spawn particles to build the wave (controls pause length)
+const CHANGE_ERA_MS = 1100;      // When to change era (safely in the middle of the cover)
+const TOTAL_DURATION_MS = 2600;  // Must be >= EMIT_DURATION + maxLifeTime to prevent popping
 
 // ── Audio ──────────────────────────────────────────────────────────────
 
@@ -64,8 +64,8 @@ const playWhooshSound = (): void => {
         const noiseSource = ctx.createBufferSource();
         noiseSource.buffer = noiseBuffer;
 
-        const coverEnd = now + 1.8; // Wave reaches center
-        const holdEnd = now + 2.4; // Wave leaves center
+        const coverEnd = now + 0.9; // Wave reaches center
+        const holdEnd = now + 1.4; // Wave leaves center
         const revealEnd = now + totalDuration;
 
         const bandpass = ctx.createBiquadFilter();
@@ -120,7 +120,7 @@ export const initCloudTransition = (
     mainFogSystem.fogEnabled = true;
 
     // Create the storm cover system — optimized capacity for better FPS
-    coverSystem = new GPUParticleSystem("fogCoverParticles", { capacity: 2000 }, scene);
+    coverSystem = new GPUParticleSystem("fogCoverParticles", { capacity: 1500 }, scene);
 
     // Spawn in a wide ring just outside the main map (radius 35, thickness 5)
     coverSystem.particleEmitterType = new CylinderParticleEmitter(35, 10, 5);
@@ -131,25 +131,23 @@ export const initCloudTransition = (
     // Reduced emission rate for better performance, compensated by larger particles
     coverSystem.emitRate = 1200;
 
-    // Lifetimes configured so particles cross the center and fly out the other side
-    // This naturally creates the "inward roll -> pause -> outward roll" effect
-    coverSystem.minLifeTime = 3.6;
-    coverSystem.maxLifeTime = 4.2;
+    // Lifetimes are strictly bound to crossing time so they don't linger invisibly and kill FPS
+    coverSystem.minLifeTime = 1.7;
+    coverSystem.maxLifeTime = 2.0;
 
     // Much larger particles to obscure everything with less overdraw (fixes lag)
-    coverSystem.minSize = 25;
-    coverSystem.maxSize = 45;
+    coverSystem.minSize = 35;
+    coverSystem.maxSize = 55;
 
-    // Fade in at the edges, stay fully opaque through the center, fade out at the opposite edge
+    // Fade in at the edges, stay fully opaque through the center, fade out just as they hit the opposite edge
     coverSystem.addColorGradient(0.0, new Color4(0.9, 0.9, 0.9, 0.0));
-    coverSystem.addColorGradient(0.1, new Color4(0.9, 0.9, 0.9, 0.85)); // Increased opacity to compensate for fewer particles
-    coverSystem.addColorGradient(0.8, new Color4(0.95, 0.95, 0.95, 0.85));
+    coverSystem.addColorGradient(0.1, new Color4(0.9, 0.9, 0.9, 0.9)); 
+    coverSystem.addColorGradient(0.8, new Color4(0.95, 0.95, 0.95, 0.9)); 
     coverSystem.addColorGradient(1.0, new Color4(0.85, 0.85, 0.85, 0.0));
 
-    // Shoot inwards from the perimeter toward the center
-    // Speed ~20 units/s. At radius 35, it takes ~1.75s to reach the center.
-    coverSystem.minEmitPower = -18;
-    coverSystem.maxEmitPower = -22;
+    // Shoot inwards extremely fast so they clear the screen quickly and die immediately
+    coverSystem.minEmitPower = -35;
+    coverSystem.maxEmitPower = -45;
 
     coverSystem.gravity = new Vector3(0, 0, 0);
     coverSystem.blendMode = ParticleSystem.BLENDMODE_STANDARD;
@@ -175,6 +173,11 @@ export const triggerCloudTransition = (onCovered: () => void): Promise<void> => 
     playWhooshSound();
 
     return new Promise<void>((resolve) => {
+        // Ensure GPU buffers are completely wiped from any previous transitions
+        if (coverSystem) {
+            coverSystem.reset();
+        }
+
         // 1. Start emitting the wave
         coverSystem!.start();
 

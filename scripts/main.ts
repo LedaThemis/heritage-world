@@ -285,6 +285,9 @@ const generateFriendlyName = (): string => {
 };
 
 const engine = new Engine(canvas, true);
+// Cap rendering resolution on high-DPI displays to reduce fill rate
+const maxPixelRatio = Math.min(window.devicePixelRatio, 1.5);
+engine.setHardwareScalingLevel(window.devicePixelRatio / maxPixelRatio);
 let activeScene: Scene | null = null;
 let selectedSite: HeritageSite | null = null;
 const playerEntities: { [key: string]: Mesh | TransformNode } = {};
@@ -352,7 +355,7 @@ const createNameLabel = (name: string, scene: Scene) => {
     const mat = new StandardMaterial("nameplate-mat", scene);
     mat.diffuseTexture = texture;
     mat.emissiveColor = new Color3(1, 1, 1);
-    mat.backFaceCulling = false;
+    // backFaceCulling stays true (default) — billboard always faces camera
 
     plane.material = mat;
     return plane;
@@ -380,7 +383,7 @@ const createEmoteBubble = (emote: string, scene: Scene) => {
     const mat = new StandardMaterial("emote-mat", scene);
     mat.diffuseTexture = texture;
     mat.emissiveColor = new Color3(1, 1, 1);
-    mat.backFaceCulling = false;
+    // backFaceCulling stays true (default) — billboard always faces camera
     mat.useAlphaFromDiffuseTexture = true;
 
     plane.material = mat;
@@ -390,8 +393,8 @@ const createEmoteBubble = (emote: string, scene: Scene) => {
 const createBillboardLabel = (text: string, scene: Scene) => {
     // Calculate dimensions based on text length
     const textLength = text.length;
-    const textureWidth = Math.max(512, textLength * 80);
-    const textureHeight = 128;
+    const textureWidth = Math.max(256, textLength * 40);
+    const textureHeight = 64;
     const planeWidth = Math.max(4, textLength * 0.5);
     const planeHeight = 1;
 
@@ -407,12 +410,12 @@ const createBillboardLabel = (text: string, scene: Scene) => {
         false
     );
     texture.hasAlpha = true;
-    texture.drawText(text, null, null, "bold 128px Arial", "white", "transparent", true, true);
+    texture.drawText(text, null, null, "bold 64px Arial", "white", "transparent", true, true);
 
     const mat = new StandardMaterial(`map-label-mat-${text}`, scene);
     mat.diffuseTexture = texture;
     mat.emissiveColor = new Color3(1, 1, 1);
-    mat.backFaceCulling = false;
+    // backFaceCulling stays true (default) — billboard always faces camera
 
     plane.material = mat;
     return plane;
@@ -1412,7 +1415,7 @@ const createScene = async function (
     // Enable ambient occlusion
     const ssao = new SSAO2RenderingPipeline("ssao", scene, 1);
     ssao.radius = 1.5;
-    ssao.samples = 16;
+    ssao.samples = 8;
     scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("ssao", camera);
 
     let ground: AbstractMesh | TransformNode;
@@ -1560,7 +1563,8 @@ const createMapScene = async () => {
     // Enable ambient occlusion
     const ssao = new SSAO2RenderingPipeline("ssao", scene, 1);
     ssao.radius = 1.5;
-    ssao.samples = 16;
+    ssao.samples = 8;
+    ssao.textureSamples = 1; // No MSAA on the SSAO texture — unnecessary for a blur effect
     scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("ssao", camera);
 
     // Create container for left-side UI elements
@@ -2068,7 +2072,7 @@ const createMapScene = async () => {
     });
 
     // Create cylindrical fog wall particle system around the perimeter
-    const fogWallParticleSystem = new GPUParticleSystem("fogWallParticles", { capacity: 5000 }, scene);
+    const fogWallParticleSystem = new GPUParticleSystem("fogWallParticles", { capacity: 2000 }, scene);
 
     // Use cylinder particle emitter type for cylindrical fog wall
     fogWallParticleSystem.particleEmitterType = new CylinderParticleEmitter(30, 30, 2.5);
@@ -2083,8 +2087,8 @@ const createMapScene = async () => {
     fogWallParticleSystem.colorDead = new Color4(0.85, 0.85, 0.85, 0.1);
 
     // Size configuration - larger particles for wall effect
-    fogWallParticleSystem.minSize = 5;
-    fogWallParticleSystem.maxSize = 8 * 2;
+    fogWallParticleSystem.minSize = 8;
+    fogWallParticleSystem.maxSize = 20;
 
     // Lifetime - persistent fog
     fogWallParticleSystem.minLifeTime = Number.MAX_SAFE_INTEGER;
@@ -2256,6 +2260,9 @@ const createMapScene = async () => {
         siteClickBoxes.set(site.name, siteMeshes);
     });
 
+    // Only ray-test against site markers, skip the Iraq model's many sub-meshes
+    scene.pointerDownPredicate = (mesh) => mesh.isPickable && mesh.name.startsWith("site-");
+
     scene.onPointerObservable.add((pointerInfo) => {
         if (pointerInfo.type !== PointerEventTypes.POINTERPICK) return;
         if (pointerInfo.pickInfo?.hit && pointerInfo.pickInfo.pickedMesh?.name.startsWith("site-")) {
@@ -2335,6 +2342,14 @@ const createMapScene = async () => {
         },
     });
 
+    // ── Performance: freeze static resources ─────────────────────────────
+    // The Iraq model and its materials don't change after setup.
+    // Freezing tells BabylonJS to skip per-frame world-matrix and
+    // material re-evaluation for these objects.
+    scene.blockMaterialDirtyMechanism = true;
+    scene.materials.forEach(mat => mat.freeze());
+    iraqModel.meshes.forEach(mesh => mesh.freezeWorldMatrix());
+
     return scene;
 };
 
@@ -2412,6 +2427,7 @@ window.addEventListener("keydown", async (e) => {
 });
 
 engine.runRenderLoop(function () {
+    if (document.hidden) return; // Don't render when tab is not visible
     activeScene?.render();
     if (fpsDisplay) {
         fpsDisplay.textContent = `FPS: ${engine.getFps().toFixed(0)}`;

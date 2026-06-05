@@ -1750,10 +1750,180 @@ const createMapScene = async () => {
     experienceContainer.classList.add("custom-scrollbar");
     document.body.appendChild(experienceContainer);
 
+    // Create site title
+    const siteTitle = document.createElement("h2");
+    siteTitle.style.margin = "0";
+    siteTitle.style.fontSize = "24px";
+    siteTitle.style.fontWeight = "bold";
+    siteTitle.style.color = "white";
+    experienceContainer.appendChild(siteTitle);
+
+    // Create description text
+    const descriptionBox = document.createElement("p");
+    descriptionBox.style.margin = "0";
+    descriptionBox.style.fontSize = "15px";
+    descriptionBox.style.lineHeight = "1.6";
+    descriptionBox.style.color = "rgba(255, 255, 255, 0.9)";
+    experienceContainer.appendChild(descriptionBox);
+
+    // Create features section
+    const featuresSection = document.createElement("div");
+    featuresSection.style.display = "flex";
+    featuresSection.style.flexDirection = "column";
+    featuresSection.style.gap = "12px";
+    featuresSection.style.marginTop = "8px";
+    experienceContainer.appendChild(featuresSection);
+
+    const featuresTitle = document.createElement("h3");
+    featuresTitle.textContent = "Available Features";
+    featuresTitle.style.margin = "0 0 8px 0";
+    featuresTitle.style.fontSize = "16px";
+    featuresTitle.style.fontWeight = "600";
+    featuresTitle.style.color = "white";
+    featuresSection.appendChild(featuresTitle);
+
+    const createFeatureItem = (label: string, available: boolean, url?: string) => {
+        const item = document.createElement("div");
+        item.style.display = "flex";
+        item.style.flexDirection = "column";
+        item.style.gap = "8px";
+        item.style.fontSize = "14px";
+        item.style.color = available ? "rgba(255, 255, 255, 0.9)" : "rgba(255, 255, 255, 0.4)";
+        item.style.padding = "12px";
+        item.style.background = "rgba(255, 255, 255, 0.05)";
+        item.style.borderRadius = "8px";
+
+        const header = document.createElement("div");
+        header.style.display = "flex";
+        header.style.alignItems = "center";
+        header.style.gap = "10px";
+
+        const checkmark = document.createElement("span");
+        checkmark.textContent = available ? "✓" : "✗";
+        checkmark.style.fontSize = "18px";
+        checkmark.style.fontWeight = "bold";
+        checkmark.style.color = available ? "#10b981" : "rgba(255, 255, 255, 0.3)";
+        header.appendChild(checkmark);
+
+        const text = document.createElement("span");
+        text.textContent = label;
+        text.style.fontWeight = "600";
+        header.appendChild(text);
+
+        item.appendChild(header);
+
+        if (url || label.includes("Interactive")) {
+            const linkText = document.createElement("p");
+            linkText.style.margin = "0 0 4px 28px";
+            linkText.style.fontSize = "13px";
+            linkText.style.color = "rgba(255, 255, 255, 0.7)";
+
+            if (label.includes("Sketchfab")) {
+                linkText.textContent = "You can view the Sketchfab collection at:";
+            } else if (label.includes("Website")) {
+                linkText.textContent = "You can visit the external website at:";
+            } else if (label.includes("Virtual Walkthrough")) {
+                linkText.textContent = "You can experience the virtual walkthrough at:";
+            } else if (label.includes("Interactive")) {
+                linkText.textContent =
+                    'You can immerse yourself in the interactive experience by clicking "Start Experience" below.';
+            }
+            item.appendChild(linkText);
+
+            if (url) {
+                const link = document.createElement("a");
+                link.href = url;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                link.textContent = url;
+                link.style.color = "#60a5fa";
+                link.style.fontSize = "13px";
+                link.style.textDecoration = "none";
+                link.style.marginLeft = "28px";
+                link.style.wordBreak = "break-all";
+                link.style.transition = "color 0.2s ease";
+                link.addEventListener("mouseenter", () => {
+                    link.style.color = "#93c5fd";
+                });
+                link.addEventListener("mouseleave", () => {
+                    link.style.color = "#60a5fa";
+                });
+                item.appendChild(link);
+            }
+        }
+
+        return item;
+    };
+
+    const websiteFeature = createFeatureItem("External Website", false);
+    const virtualWalkthroughFeature = createFeatureItem("Virtual Walkthrough", false);
+    const sketchfabFeature = createFeatureItem("Sketchfab 3D Collection", false);
+    const interactiveFeature = createFeatureItem("Interactive Experience", false);
+
+    featuresSection.appendChild(websiteFeature);
+    featuresSection.appendChild(virtualWalkthroughFeature);
+    featuresSection.appendChild(sketchfabFeature);
+    featuresSection.appendChild(interactiveFeature);
+
+    // Create Start Experience button (only visible if interactive experience exists)
+    const startExperienceBtn = document.createElement("button");
+    startExperienceBtn.textContent = "Start Experience";
+    startExperienceBtn.style.width = "100%";
+    startExperienceBtn.style.padding = "12px 32px";
+    startExperienceBtn.style.fontSize = "16px";
+    startExperienceBtn.style.fontWeight = "bold";
+    startExperienceBtn.style.background = "#3b82f6";
+    startExperienceBtn.style.color = "white";
+    startExperienceBtn.style.border = "none";
+    startExperienceBtn.style.borderRadius = "8px";
+    startExperienceBtn.style.cursor = "pointer";
+    startExperienceBtn.style.transition = "all 0.2s ease";
+    startExperienceBtn.style.marginTop = "8px";
+    startExperienceBtn.addEventListener("mouseenter", () => {
+        startExperienceBtn.style.background = "#2563eb";
+    });
+    startExperienceBtn.addEventListener("mouseleave", () => {
+        startExperienceBtn.style.background = "#3b82f6";
+    });
+    experienceContainer.appendChild(startExperienceBtn);
+
     let currentFocusedSite: string | null = null;
 
+    // Update panel with site data
     const updatePanelWithSite = (site: HeritageSite) => {
-        experienceContainer.site = site;
+        siteTitle.textContent = site.name;
+        descriptionBox.textContent = site.description;
+
+        // Clear existing features
+        while (featuresSection.children.length > 1) {
+            featuresSection.removeChild(featuresSection.lastChild!);
+        }
+
+        // Add only available features
+        const hasWebsite = !!site.websiteUrl;
+        const hasVirtualWalkthrough = !!site.virtualWalkthroughUrl;
+        const hasSketchfab = !!site.sketchfabUrl;
+        const hasInteractive = !!site.worldModelPath;
+
+        if (hasWebsite) {
+            featuresSection.appendChild(createFeatureItem("External Website", true, site.websiteUrl));
+        }
+        if (hasVirtualWalkthrough) {
+            featuresSection.appendChild(createFeatureItem("Virtual Walkthrough", true, site.virtualWalkthroughUrl));
+        }
+        if (hasSketchfab) {
+            featuresSection.appendChild(createFeatureItem("Sketchfab 3D Collection", true, site.sketchfabUrl));
+        }
+        if (hasInteractive) {
+            featuresSection.appendChild(createFeatureItem("Interactive Experience", true));
+        }
+
+        // Show/hide features section if no features available
+        featuresSection.style.display =
+            hasWebsite || hasVirtualWalkthrough || hasSketchfab || hasInteractive ? "flex" : "none";
+
+        // Show/hide start button based on interactive availability
+        startExperienceBtn.style.display = hasInteractive ? "block" : "none";
     };
 
     // Reusable function to animate camera focus

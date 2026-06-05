@@ -50,6 +50,11 @@ export const injectTimelineStyles = (): void => {
             }
         }
 
+        @keyframes tl-glow-opacity {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+
         @keyframes tl-fade-slide-up {
             from {
                 opacity: 0;
@@ -230,7 +235,19 @@ export const injectTimelineStyles = (): void => {
             background: linear-gradient(90deg, var(--tl-gold-dim), var(--tl-gold));
             transition: width var(--tl-transition);
             box-shadow: 0 0 10px rgba(201, 168, 76, 0.3);
-            animation: tl-glow-pulse 3s ease-in-out infinite;
+        }
+
+        .tl-progress::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: inherit;
+            box-shadow: 0 0 12px rgba(201, 168, 76, 0.5), 0 0 24px rgba(201, 168, 76, 0.2);
+            animation: tl-glow-opacity 3s ease-in-out infinite;
+            pointer-events: none;
         }
 
         /* Era tick marks on the track */

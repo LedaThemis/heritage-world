@@ -40,14 +40,32 @@ export class AiGuide extends LitElement {
     // by her status. Otherwise we show a hand-drawn pose image per state (idle/talk/think/listen),
     // animated with smooth CSS. Falls back to the emoji if the pose images are missing.
     @state() private poseFailed = false;
+    @state() private talkFrame = 0;
+    private talkTimer: number | null = null;
     private readonly poses: Record<string, string> = {
         idle: "/assets/aoi/idle.png",
         listening: "/assets/aoi/listening.png",
         thinking: "/assets/aoi/thinking.png",
-        speaking: "/assets/aoi/talking.png",
     };
+    // While speaking she cycles these so her hands gesture.
+    private readonly talkFrames = ["/assets/aoi/talk1.png", "/assets/aoi/talk2.png"];
     private currentPose(): string {
+        if (this.status === "speaking") return this.talkFrames[this.talkFrame] || this.talkFrames[0];
         return this.poses[this.status] || this.poses.idle;
+    }
+    private startTalkCycle() {
+        this.stopTalkCycle();
+        this.talkFrame = 0;
+        this.talkTimer = window.setInterval(() => {
+            this.talkFrame = this.talkFrame ? 0 : 1;
+        }, 1500);
+    }
+    private stopTalkCycle() {
+        if (this.talkTimer) {
+            clearInterval(this.talkTimer);
+            this.talkTimer = null;
+        }
+        this.talkFrame = 0;
     }
     @state() private riveReady = false;
     private rive: any = null;
@@ -181,7 +199,7 @@ export class AiGuide extends LitElement {
             animation: bob 3.2s ease-in-out infinite, glow 1.3s infinite;
         }
         .avatar.speaking {
-            animation: talk 1.5s ease-in-out infinite;
+            animation: talk 3.2s ease-in-out infinite;
         }
         .avatar.thinking {
             animation: tilt 1.6s ease-in-out infinite;
@@ -286,7 +304,11 @@ export class AiGuide extends LitElement {
     }
 
     protected updated(changed: Map<string, unknown>): void {
-        if (changed.has("status") && this.riveReady) this.applyRiveState();
+        if (changed.has("status")) {
+            if (this.status === "speaking") this.startTalkCycle();
+            else this.stopTalkCycle();
+            if (this.riveReady) this.applyRiveState();
+        }
     }
 
     private async initRive() {

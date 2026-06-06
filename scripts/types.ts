@@ -21,6 +21,7 @@ export interface HeritageSite {
     thumbnailPath: string;
     modelPath?: string;
     markerScale?: number;
+    markerRotation?: number; // radians, spins the marker around the vertical axis
     worldModelPath?: string;
     worldModelScaling?: Vector3;
     worldModelRotation?: Vector3;

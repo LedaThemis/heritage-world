@@ -75,160 +75,161 @@ const ANIMALS = ["Fox", "Otter", "Panda", "Hawk", "Wolf", "Dolphin", "Lynx", "Ko
 const SITES: HeritageSite[] = [
     ...(import.meta.env.VITE_IS_OFFLINE_SINGLE_SITE === "true"
         ? [
-              {
-                  id: "SINGLE-SCENE",
-                  name: "Single Scene",
-                  position: new Vector3(-15, 1, 15),
-                  description: "A single scene for auto-loading the world without need for user interaction",
-                  thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
-                  worldModelPath: "./assets/models/al-tahira-world.glb",
-                  worldModelScaling: new Vector3(2, 2, 2),
-                  worldObjects: [
-                      {
-                          id: "pot",
-                          modelPath: "./assets/models/museum-models/pot.glb",
-                          position: new Vector3(4.25, -0.75, -20.25),
-                          rotation: new Vector3(-Math.PI / 2, Math.PI / 2, 0),
-                          scaling: new Vector3(0.1, 0.1, 0.1),
-                      },
-                      {
-                          id: "column_base",
-                          modelPath: "./assets/models/museum-models/column_base.glb",
-                          position: new Vector3(-4.25, -0.8, -20.1),
-                          rotation: new Vector3(-Math.PI / 2, 0, 0),
-                          scaling: new Vector3(0.1, 0.1, 0.1),
-                      },
-                      {
-                          id: "three_humans",
-                          modelPath: "./assets/models/museum-models/three_humans.glb",
-                          position: new Vector3(-20.45, 0.5, -2.2),
-                          rotation: new Vector3(Math.PI / 2, (3 * Math.PI) / 2, 0),
-                          scaling: new Vector3(0.25, 0.25, 0.25),
-                      },
-                      {
-                          id: "black_rock",
-                          modelPath: "./assets/models/museum-models/black_rock.glb",
-                          position: new Vector3(-17.75, 0.5, -10.5),
-                          rotation: new Vector3(Math.PI / 2, 0, 0),
-                          scaling: new Vector3(0.25, 0.25, 0.25),
-                      },
-                      {
-                          id: "stone_tablet_i",
-                          modelPath: "./assets/models/museum-models/stone_tablet_i.glb",
-                          position: new Vector3(-15, 0, 13.25),
-                          rotation: new Vector3(-Math.PI / 2, Math.PI / 4, 0),
-                          scaling: new Vector3(0.075, 0.075, 0.075),
-                      },
-                      {
-                          id: "stone_tablet_ii",
-                          modelPath: "./assets/models/museum-models/stone_tablet_ii.glb",
-                          position: new Vector3(-8.05, 0.15, 17.95),
-                          rotation: new Vector3(-Math.PI / 2, (70 / 360) * 2 * Math.PI, 0),
-                          scaling: new Vector3(0.2, 0.2, 0.2),
-                      },
-                      {
-                          id: "stone_tablet_iii",
-                          modelPath: "./assets/models/museum-models/stone_tablet_iii.glb",
-                          position: new Vector3(8.25, 0.05, 18.22),
-                          rotation: new Vector3(-Math.PI / 2, (200 / 360) * (2 * Math.PI), 0),
-                          scaling: new Vector3(0.2, 0.2, 0.2),
-                      },
-                      {
-                          id: "stone_tablet_iv",
-                          modelPath: "./assets/models/museum-models/stone_tablet_iv.glb",
-                          position: new Vector3(15, -0.075, 13.5),
-                          rotation: new Vector3(-Math.PI / 2, (320 / 360) * 2 * Math.PI, 0),
-                          scaling: new Vector3(0.25, 0.25, 0.25),
-                      },
-                      {
-                          id: "church_grand_door",
-                          modelPath: "./assets/models/museum-models/church_grand_door.glb",
-                          position: new Vector3(0, 4.718, 19.701),
-                          rotation: new Vector3(-Math.PI / 2, 0, 0),
-                          scaling: new Vector3(1, 1, 1),
-                      },
-                      {
-                          id: "clay_pot",
-                          modelPath: "./assets/models/museum-models/clay_pot.glb",
-                          position: new Vector3(17.75, -1.35, -10.5),
-                          rotation: new Vector3(-Math.PI / 2, Math.PI, 0),
-                          scaling: new Vector3(0.2, 0.2, 0.2),
-                      },
-                      {
-                          id: "human_skull_ii",
-                          modelPath: "./assets/models/museum-models/human_skull_ii.glb",
-                          position: new Vector3(20.25, -1.17, -2.4),
-                          rotation: new Vector3(-Math.PI / 2, (290 / 360) * (2 * Math.PI), 0),
-                          scaling: new Vector3(0.05, 0.05, 0.05),
-                      },
-                      {
-                          id: "rusted_sword",
-                          modelPath: "./assets/models/museum-models/rusted_sword.glb",
-                          position: new Vector3(7.73, -1.42, -7.21),
-                          rotation: new Vector3(-Math.PI / 2, (135 / 360) * (2 * Math.PI), 0),
-                          scaling: new Vector3(0.09, 0.09, 0.09),
-                      },
-                      {
-                          id: "wooden_cup",
-                          modelPath: "./assets/models/museum-models/wooden_cup.glb",
-                          position: new Vector3(10.37, -1.26, 0.95),
-                          rotation: new Vector3(-Math.PI / 2, (83.6 / 360) * (2 * Math.PI), 0),
-                          scaling: new Vector3(0.05, 0.05, 0.05),
-                      },
-                      {
-                          id: "skeleton",
-                          modelPath: "./assets/models/museum-models/skeleton.glb",
-                          position: new Vector3(-7.76, -1.02, -7.15),
-                          rotation: new Vector3(-Math.PI / 2, (320 / 360) * (2 * Math.PI), 0),
-                          scaling: new Vector3(0.075, 0.075, 0.075),
-                      },
-                      {
-                          id: "clay_bowl",
-                          modelPath: "./assets/models/museum-models/clay_bowl.glb",
-                          position: new Vector3(6.05, -1.08, 8.12),
-                          rotation: new Vector3(-Math.PI / 2, 0, 0),
-                          scaling: new Vector3(0.04, 0.04, 0.04),
-                      },
-                      {
-                          id: "log_container",
-                          modelPath: "./assets/models/museum-models/log_container.glb",
-                          position: new Vector3(-6.1, -1.17, 8.23),
-                          rotation: new Vector3(-Math.PI / 2, (131 / 360) * (2 * Math.PI), 0),
-                          scaling: new Vector3(0.1, 0.1, 0.1),
-                      },
-                      {
-                          id: "fishing_net",
-                          modelPath: "./assets/models/museum-models/fishing_net.glb",
-                          position: new Vector3(-10.35, -1.18, 1.01),
-                          rotation: new Vector3(-Math.PI / 2, (-88 / 360) * (2 * Math.PI), 0),
-                          scaling: new Vector3(0.07, 0.07, 0.07),
-                      },
-                  ],
-              },
-              {
-                  id: "SINGLE-SCENE2",
-                  name: "Single Scene 2",
-                  position: new Vector3(-15, 1, 15),
-                  description: "A single scene for auto-loading the world without need for user interaction",
-                  thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
-                  worldModelPath: "./assets/models/cloister.glb",
-                  worldModelScaling: new Vector3(1, 1, 1),
-                  worldModelRotation: new Vector3(-Math.PI / 2, 0, 0),
-                  worldPlayerSpawnPosition: new Vector3(55, 0, -52),
-                  worldPlayerRotation: new Vector3(0, -Math.PI / 2, 0),
-              },
-          ]
+            {
+                id: "SINGLE-SCENE",
+                name: "Single Scene",
+                position: new Vector3(-15, 1, 15),
+                description: "A single scene for auto-loading the world without need for user interaction",
+                thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
+                worldModelPath: "./assets/models/al-tahira-world.glb",
+                worldModelScaling: new Vector3(2, 2, 2),
+                worldObjects: [
+                    {
+                        id: "pot",
+                        modelPath: "./assets/models/museum-models/pot.glb",
+                        position: new Vector3(4.25, -0.75, -20.25),
+                        rotation: new Vector3(-Math.PI / 2, Math.PI / 2, 0),
+                        scaling: new Vector3(0.1, 0.1, 0.1),
+                    },
+                    {
+                        id: "column_base",
+                        modelPath: "./assets/models/museum-models/column_base.glb",
+                        position: new Vector3(-4.25, -0.8, -20.1),
+                        rotation: new Vector3(-Math.PI / 2, 0, 0),
+                        scaling: new Vector3(0.1, 0.1, 0.1),
+                    },
+                    {
+                        id: "three_humans",
+                        modelPath: "./assets/models/museum-models/three_humans.glb",
+                        position: new Vector3(-20.45, 0.5, -2.2),
+                        rotation: new Vector3(Math.PI / 2, (3 * Math.PI) / 2, 0),
+                        scaling: new Vector3(0.25, 0.25, 0.25),
+                    },
+                    {
+                        id: "black_rock",
+                        modelPath: "./assets/models/museum-models/black_rock.glb",
+                        position: new Vector3(-17.75, 0.5, -10.5),
+                        rotation: new Vector3(Math.PI / 2, 0, 0),
+                        scaling: new Vector3(0.25, 0.25, 0.25),
+                    },
+                    {
+                        id: "stone_tablet_i",
+                        modelPath: "./assets/models/museum-models/stone_tablet_i.glb",
+                        position: new Vector3(-15, 0, 13.25),
+                        rotation: new Vector3(-Math.PI / 2, Math.PI / 4, 0),
+                        scaling: new Vector3(0.075, 0.075, 0.075),
+                    },
+                    {
+                        id: "stone_tablet_ii",
+                        modelPath: "./assets/models/museum-models/stone_tablet_ii.glb",
+                        position: new Vector3(-8.05, 0.15, 17.95),
+                        rotation: new Vector3(-Math.PI / 2, (70 / 360) * 2 * Math.PI, 0),
+                        scaling: new Vector3(0.2, 0.2, 0.2),
+                    },
+                    {
+                        id: "stone_tablet_iii",
+                        modelPath: "./assets/models/museum-models/stone_tablet_iii.glb",
+                        position: new Vector3(8.25, 0.05, 18.22),
+                        rotation: new Vector3(-Math.PI / 2, (200 / 360) * (2 * Math.PI), 0),
+                        scaling: new Vector3(0.2, 0.2, 0.2),
+                    },
+                    {
+                        id: "stone_tablet_iv",
+                        modelPath: "./assets/models/museum-models/stone_tablet_iv.glb",
+                        position: new Vector3(15, -0.075, 13.5),
+                        rotation: new Vector3(-Math.PI / 2, (320 / 360) * 2 * Math.PI, 0),
+                        scaling: new Vector3(0.25, 0.25, 0.25),
+                    },
+                    {
+                        id: "church_grand_door",
+                        modelPath: "./assets/models/museum-models/church_grand_door.glb",
+                        position: new Vector3(0, 4.718, 19.701),
+                        rotation: new Vector3(-Math.PI / 2, 0, 0),
+                        scaling: new Vector3(1, 1, 1),
+                    },
+                    {
+                        id: "clay_pot",
+                        modelPath: "./assets/models/museum-models/clay_pot.glb",
+                        position: new Vector3(17.75, -1.35, -10.5),
+                        rotation: new Vector3(-Math.PI / 2, Math.PI, 0),
+                        scaling: new Vector3(0.2, 0.2, 0.2),
+                    },
+                    {
+                        id: "human_skull_ii",
+                        modelPath: "./assets/models/museum-models/human_skull_ii.glb",
+                        position: new Vector3(20.25, -1.17, -2.4),
+                        rotation: new Vector3(-Math.PI / 2, (290 / 360) * (2 * Math.PI), 0),
+                        scaling: new Vector3(0.05, 0.05, 0.05),
+                    },
+                    {
+                        id: "rusted_sword",
+                        modelPath: "./assets/models/museum-models/rusted_sword.glb",
+                        position: new Vector3(7.73, -1.42, -7.21),
+                        rotation: new Vector3(-Math.PI / 2, (135 / 360) * (2 * Math.PI), 0),
+                        scaling: new Vector3(0.09, 0.09, 0.09),
+                    },
+                    {
+                        id: "wooden_cup",
+                        modelPath: "./assets/models/museum-models/wooden_cup.glb",
+                        position: new Vector3(10.37, -1.26, 0.95),
+                        rotation: new Vector3(-Math.PI / 2, (83.6 / 360) * (2 * Math.PI), 0),
+                        scaling: new Vector3(0.05, 0.05, 0.05),
+                    },
+                    {
+                        id: "skeleton",
+                        modelPath: "./assets/models/museum-models/skeleton.glb",
+                        position: new Vector3(-7.76, -1.02, -7.15),
+                        rotation: new Vector3(-Math.PI / 2, (320 / 360) * (2 * Math.PI), 0),
+                        scaling: new Vector3(0.075, 0.075, 0.075),
+                    },
+                    {
+                        id: "clay_bowl",
+                        modelPath: "./assets/models/museum-models/clay_bowl.glb",
+                        position: new Vector3(6.05, -1.08, 8.12),
+                        rotation: new Vector3(-Math.PI / 2, 0, 0),
+                        scaling: new Vector3(0.04, 0.04, 0.04),
+                    },
+                    {
+                        id: "log_container",
+                        modelPath: "./assets/models/museum-models/log_container.glb",
+                        position: new Vector3(-6.1, -1.17, 8.23),
+                        rotation: new Vector3(-Math.PI / 2, (131 / 360) * (2 * Math.PI), 0),
+                        scaling: new Vector3(0.1, 0.1, 0.1),
+                    },
+                    {
+                        id: "fishing_net",
+                        modelPath: "./assets/models/museum-models/fishing_net.glb",
+                        position: new Vector3(-10.35, -1.18, 1.01),
+                        rotation: new Vector3(-Math.PI / 2, (-88 / 360) * (2 * Math.PI), 0),
+                        scaling: new Vector3(0.07, 0.07, 0.07),
+                    },
+                ],
+            },
+            {
+                id: "SINGLE-SCENE2",
+                name: "Single Scene 2",
+                position: new Vector3(-15, 1, 15),
+                description: "A single scene for auto-loading the world without need for user interaction",
+                thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
+                worldModelPath: "./assets/models/cloister.glb",
+                worldModelScaling: new Vector3(1, 1, 1),
+                worldModelRotation: new Vector3(-Math.PI / 2, 0, 0),
+                worldPlayerSpawnPosition: new Vector3(55, 0, -52),
+                worldPlayerRotation: new Vector3(0, -Math.PI / 2, 0),
+            },
+        ]
         : []),
     {
         id: "1",
         name: "Hosh Al-Bay'ah Collection",
-        position: new Vector3(-15, 1, 15),
+        position: new Vector3(-7.5, 1, 20.8),
         description: "A historic collection showcasing traditional architecture and cultural heritage of the region.",
         thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
         modelPath: "./assets/models/markers/AL-TAHIRA COLECTION.glb",
         worldModelPath: "./assets/models/al-tahira-world.glb",
         worldModelScaling: new Vector3(2, 2, 2),
         websiteUrl: "https://alqaba.com/al-tahira-church",
+        markerScale: 1,
         virtualWalkthroughUrl: "https://www.alqaba.com/al-tahira-church/walkthrough",
         sketchfabUrl:
             "https://sketchfab.com/HusseinYaseen/collections/hosh-al-bayaah-churchs-67ed28d04539400b87073ef37b3218d8",
@@ -236,7 +237,7 @@ const SITES: HeritageSite[] = [
     {
         id: "2",
         name: "Old City of Mosul",
-        position: new Vector3(-12, 1, 11),
+        position: new Vector3(-7.4, 1, 20.1),
         description: "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
         thumbnailPath: "./assets/sites/mosul.webp",
         modelPath: "./assets/models/markers/MANART AL-HADB'A.glb",
@@ -246,7 +247,7 @@ const SITES: HeritageSite[] = [
     {
         id: "3",
         name: "Erbil Citadel",
-        position: new Vector3(-7.5, 1, 12.5),
+        position: new Vector3(-1.6, 1, 24.4),
         description: "One of the oldest continuously inhabited settlements in the world, a UNESCO World Heritage site.",
         thumbnailPath: "./assets/sites/erbil.png",
         modelPath: "./assets/models/markers/ERBIL CITADEL.glb",
@@ -254,7 +255,9 @@ const SITES: HeritageSite[] = [
     {
         id: "4",
         name: "Baghdad Museum",
-        position: new Vector3(-1.5, 1, -1),
+        position: new Vector3(-1.5, 1, 2.5),
+        markerRotation: Math.PI / 3,
+        markerScale: 0.5,
         description: "Home to priceless artifacts from Mesopotamian civilizations and Iraq's rich cultural history.",
         thumbnailPath: "./assets/sites/baghdad-museum.webp",
         modelPath: "./assets/models/markers/THE IRAQI MUSEUM GATE.glb",
@@ -263,7 +266,7 @@ const SITES: HeritageSite[] = [
     {
         id: "5",
         name: "Uruk City",
-        position: new Vector3(0, 1, -15),
+        position: new Vector3(9.4, 1, -8.3),
         description: "Ancient Sumerian city-state, birthplace of writing and one of the world's first great cities.",
         thumbnailPath: "./assets/sites/uruk.jpg",
         modelPath: "./assets/models/markers/URUK CITY RUIN.glb",
@@ -272,11 +275,12 @@ const SITES: HeritageSite[] = [
     {
         id: "6",
         name: "Al-Chibayish Marshlands",
-        position: new Vector3(15, 1, -19),
+        position: new Vector3(15.4, 1, -13),
         description: "Unique wetland ecosystem, home to the Marsh Arabs and diverse wildlife in southern Iraq.",
         thumbnailPath: "./assets/sites/marshlands.png",
         modelPath: "./assets/models/mudhif.glb",
-        markerScale: 0.075,
+        markerScale: 0.05,
+        markerRotation: Math.PI / 2,
         websiteUrl: "https://alqaba.com/iraq-marshes",
         virtualWalkthroughUrl: "https://www.alqaba.com/iraq-marshes/walkthrough",
         sketchfabUrl:
@@ -285,7 +289,7 @@ const SITES: HeritageSite[] = [
     {
         id: "7",
         name: "Al-Ukhaidir Fortress",
-        position: new Vector3(-3, 1, -6),
+        position: new Vector3(-10.9, 1, -1.6),
         description: "An impressive Abbasid fortress in the desert south of Karbala.",
         thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
         modelPath: "./assets/models/markers/7SN AL-AKIDER.glb",
@@ -293,7 +297,7 @@ const SITES: HeritageSite[] = [
     {
         id: "8",
         name: "Walls of Mosul",
-        position: new Vector3(-13, 1, 12),
+        position: new Vector3(-8.0, 1, 20.0),
         description: "The ancient defensive walls surrounding the historic city of Mosul.",
         thumbnailPath: "./assets/sites/mosul.webp",
         modelPath: "./assets/models/markers/ASWAR MOSUL.glb",
@@ -301,7 +305,9 @@ const SITES: HeritageSite[] = [
     {
         id: "9",
         name: "Hatra Temple",
-        position: new Vector3(-10, 1, 6),
+        position: new Vector3(-13, 1, 17.9),
+        markerRotation: Math.PI / 2,
+        markerScale: 0.5,
         description: "An ancient city in the Nineveh Governorate and a UNESCO World Heritage site.",
         thumbnailPath: "./assets/sites/mosul.webp",
         modelPath: "./assets/models/markers/HATTAR TEMPLE.glb",
@@ -309,7 +315,8 @@ const SITES: HeritageSite[] = [
     {
         id: "10",
         name: "Babylon",
-        position: new Vector3(-1.5, 1, -3),
+        position: new Vector3(-2, 1, -2.5),
+        markerRotation: Math.PI / 2,
         description: "One of the most famous cities of antiquity, known for its impressive walls and the Lion of Babylon.",
         thumbnailPath: "./assets/sites/baghdad-museum.webp",
         modelPath: "./assets/models/markers/LION OF BABYLON.glb",
@@ -317,7 +324,7 @@ const SITES: HeritageSite[] = [
     {
         id: "11",
         name: "Malwiya Minaret",
-        position: new Vector3(-3, 1, 4),
+        position: new Vector3(-5.4, 1, 7.3),
         description: "The iconic spiraling cone minaret of the Great Mosque of Samarra.",
         thumbnailPath: "./assets/sites/baghdad-museum.webp",
         modelPath: "./assets/models/markers/MALWIAT SAMARA.glb",
@@ -325,7 +332,7 @@ const SITES: HeritageSite[] = [
     {
         id: "12",
         name: "Anah Minaret",
-        position: new Vector3(-8, 1, 5),
+        position: new Vector3(-13.9, 1, 7.8),
         description: "An ancient minaret representing the historic town of Anah on the Euphrates.",
         thumbnailPath: "./assets/sites/mosul.webp",
         modelPath: "./assets/models/markers/MANART A'ANA.glb",
@@ -333,7 +340,8 @@ const SITES: HeritageSite[] = [
     {
         id: "13",
         name: "Ur Ziggurat",
-        position: new Vector3(2, 1, -12),
+        position: new Vector3(10.0, 1, -18.3),
+        markerRotation: Math.PI / 1.5,
         description: "A Neo-Sumerian ziggurat in the ancient city of Ur near Nasiriyah.",
         thumbnailPath: "./assets/sites/uruk.jpg",
         modelPath: "./assets/models/markers/OUR ZAQURAT.glb",
@@ -341,7 +349,8 @@ const SITES: HeritageSite[] = [
     {
         id: "14",
         name: "Taq Kasra",
-        position: new Vector3(-1, 1, -2),
+        position: new Vector3(4.5, 1, 7.0),
+        markerRotation: Math.PI / -2,
         description: "The magnificent vault of the palace of the Sasanian kings at Ctesiphon.",
         thumbnailPath: "./assets/sites/baghdad-museum.webp",
         modelPath: "./assets/models/markers/TUQ KISRA.glb",
@@ -1814,7 +1823,7 @@ const createMapScene = async () => {
     sidePanel.classList.add("custom-scrollbar");
 
     leftContainer.appendChild(sidePanel);
-    
+
 
     // Panel header
     const panelHeader = document.createElement("h2");
@@ -2206,7 +2215,7 @@ const createMapScene = async () => {
     // Initialize cloud transition system (uses same smoke.png texture)
     initCloudTransition(scene, fogWallParticleSystem);
 
-    
+
 
     // Populate side panel with sites
     SITES.forEach((site) => {
@@ -2329,6 +2338,7 @@ const createMapScene = async () => {
             const MARKER_TARGET = 3.75;
             const markerScale = site.markerScale ?? MARKER_TARGET / renderedMaxDim;
             siteContainer.scaling = new Vector3(markerScale, markerScale, markerScale);
+            siteContainer.rotation.y = site.markerRotation ?? 0;
             siteContainer.position.subtractInPlace(new Vector3(0, 0.25, 0));
 
             // Parent all meshes to the container

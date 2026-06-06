@@ -37,6 +37,7 @@ import { showInfoCard } from "./timeline/timelineInfoCard";
 import { animateCameraToEra, updateSiteVisibility } from "./timeline/timelineAnimations";
 import { SITE_ERA_MAP, HISTORICAL_ERAS } from "./timeline/timelineData";
 import { initCloudTransition, triggerCloudTransition, disposeCloudTransition } from "./timeline/cloudTransition";
+import { createCommentsSection } from "./comments/siteComments";
 import type { PlayerRoomType, HeritageSite } from "./types";
 import "./ui/components/ai-guide";
 import type { AiGuide } from "./ui/components/ai-guide";
@@ -221,9 +222,9 @@ const SITES: HeritageSite[] = [
         : []),
     {
         id: "1",
-        name: "Hosh Al-Bay'ah Collection",
+        name: "Al-Tahira Church Collection",
         position: new Vector3(-7.5, 1, 20.8),
-        description: "A historic collection showcasing traditional architecture and cultural heritage of the region.",
+        description: "A collection representing the historic Al-Tahira Church complex, one of Mosul's most important Christian heritage landmarks.",
         thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
         modelPath: "./assets/models/markers/AL-TAHIRA COLECTION.glb",
         worldModelPath: "./assets/models/al-tahira-world.glb",
@@ -233,44 +234,120 @@ const SITES: HeritageSite[] = [
         virtualWalkthroughUrl: "https://www.alqaba.com/al-tahira-church/walkthrough",
         sketchfabUrl:
             "https://sketchfab.com/HusseinYaseen/collections/hosh-al-bayaah-churchs-67ed28d04539400b87073ef37b3218d8",
+        comments: [
+            {
+                id: "c1-1",
+                author: "Layla Hassan",
+                text: "The stonework detail in the courtyard is breathtaking. The 3D scan really captures how light moves through the arches.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 3, // 3h ago
+            },
+            {
+                id: "c1-2",
+                author: "Omar Al-Rashid",
+                text: "Visited the real site last spring — this digital reconstruction does it justice. Wonderful to see it preserved.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 27, // ~1d ago
+            },
+            {
+                id: "c1-3",
+                author: "Dr. Mariam Yousef",
+                text: "A rare example of late-period regional architecture. The Sketchfab collection is a great teaching resource for my students.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 6, // 6d ago
+            },
+        ],
     },
     {
         id: "2",
-        name: "Old City of Mosul",
+        name: "Al-Hadba Minaret",
         position: new Vector3(-7.4, 1, 20.1),
-        description: "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
+        description: "The famous leaning minaret of the Great Mosque of al-Nuri, a symbol of Mosul for centuries.",
         thumbnailPath: "./assets/sites/mosul.webp",
         modelPath: "./assets/models/markers/MANART AL-HADB'A.glb",
         virtualWalkthroughUrl: "https://www.alqaba.com/old-town/walkthrough",
         websiteUrl: "https://www.alqaba.com/old-town",
+        comments: [
+            {
+                id: "c2-1",
+                author: "Nour Ibrahim",
+                text: "Walking through these streets virtually brought back so many memories. Thank you for keeping the city's spirit alive.",
+                timestamp: Date.now() - 1000 * 60 * 45, // 45m ago
+            },
+            {
+                id: "c2-2",
+                author: "James Whitfield",
+                text: "The reconstruction of the Al-Nuri Mosque area is incredibly moving. An important act of cultural preservation.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 2, // 2d ago
+            },
+        ],
     },
     {
         id: "3",
         name: "Erbil Citadel",
         position: new Vector3(-1.6, 1, 24.4),
-        description: "One of the oldest continuously inhabited settlements in the world, a UNESCO World Heritage site.",
+        description: "One of the world's oldest continuously inhabited settlements and a UNESCO World Heritage Site dominating central Erbil.",
         thumbnailPath: "./assets/sites/erbil.png",
         modelPath: "./assets/models/markers/ERBIL CITADEL.glb",
+        comments: [
+            {
+                id: "c3-1",
+                author: "Sara Karim",
+                text: "Over 6,000 years of continuous habitation — standing on the mound, you can feel the weight of that history.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 8, // 8h ago
+            },
+        ],
     },
     {
         id: "4",
-        name: "Baghdad Museum",
+        name: "Iraqi Museum Gate",
         position: new Vector3(-1.5, 1, 2.5),
         markerRotation: Math.PI / 3,
         markerScale: 0.5,
-        description: "Home to priceless artifacts from Mesopotamian civilizations and Iraq's rich cultural history.",
+        description: "A reconstruction inspired by monumental Mesopotamian gateways displayed and preserved through the Iraqi Museum.",
         thumbnailPath: "./assets/sites/baghdad-museum.webp",
         modelPath: "./assets/models/markers/THE IRAQI MUSEUM GATE.glb",
         sketchfabUrl: "https://sketchfab.com/HusseinYaseen/collections/iraqi-museum-b2f69baa92d84b50a90711d5db7d7f18",
+        comments: [
+            {
+                id: "c4-1",
+                author: "Anita George",
+                text: "The collection here is world-class. Being able to browse the artifacts in 3D before visiting is fantastic.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 5, // 5h ago
+            },
+            {
+                id: "c4-2",
+                author: "Tariq Mahmoud",
+                text: "So glad these treasures are documented digitally. Every Iraqi should be proud of this heritage.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 4, // 4d ago
+            },
+        ],
     },
     {
         id: "5",
-        name: "Uruk City",
+        name: "Ancient City of Uruk",
         position: new Vector3(9.4, 1, -8.3),
-        description: "Ancient Sumerian city-state, birthplace of writing and one of the world's first great cities.",
+        description: "One of the world's earliest cities and a major center of Sumerian civilization associated with the origins of writing and urban life.",
         thumbnailPath: "./assets/sites/uruk.jpg",
         modelPath: "./assets/models/markers/URUK CITY RUIN.glb",
         sketchfabUrl: "https://sketchfab.com/HusseinYaseen/collections/uruk-city-0281a1d074b74daf937ccd853b9ec4fc",
+        comments: [
+            {
+                id: "c5-1",
+                author: "Prof. Daniel Hart",
+                text: "The birthplace of writing itself. Hard to overstate how important Uruk is to human history.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 2, // 2h ago
+            },
+            {
+                id: "c5-2",
+                author: "Reem Salah",
+                text: "Incredible to think the first cities on Earth rose right here. The ruins model is beautifully detailed.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 9, // ~1w ago
+            },
+            {
+                id: "c5-3",
+                author: "Kenji Watanabe",
+                text: "Used this in my ancient history class — the students were captivated. Thank you for making it accessible.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 22, // ~3w ago
+            },
+        ],
     },
     {
         id: "6",
@@ -285,22 +362,58 @@ const SITES: HeritageSite[] = [
         virtualWalkthroughUrl: "https://www.alqaba.com/iraq-marshes/walkthrough",
         sketchfabUrl:
             "https://sketchfab.com/HusseinYaseen/collections/al-chibayish-marshes-b57822cc6dee4a698669e1e08c1e1f4b",
+        comments: [
+            {
+                id: "c6-1",
+                author: "Fatima Al-Saadi",
+                text: "My grandparents lived among these reeds. Seeing the mudhif reconstructed brought tears to my eyes.",
+                timestamp: Date.now() - 1000 * 60 * 30, // 30m ago
+            },
+            {
+                id: "c6-2",
+                author: "Marcus Lindqvist",
+                text: "One of the oldest continuous cultures on the planet. The wetland atmosphere comes across so well here.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 3, // 3d ago
+            },
+        ],
     },
     {
         id: "7",
         name: "Al-Ukhaidir Fortress",
         position: new Vector3(-10.9, 1, -1.6),
-        description: "An impressive Abbasid fortress in the desert south of Karbala.",
+        description: "A large fortified Abbasid-era desert palace renowned for its innovative Islamic architectural design and defensive walls.",
         thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
         modelPath: "./assets/models/markers/7SN AL-AKIDER.glb",
+        comments: [
+            {
+                id: "c7-1",
+                author: "Hana Boulos",
+                text: "The scale of this fortress in the middle of the desert is awe-inspiring. Abbasid engineering at its finest.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 11, // 11h ago
+            },
+        ],
     },
     {
         id: "8",
-        name: "Walls of Mosul",
+        name: "Mosul City Walls",
         position: new Vector3(-8.0, 1, 20.0),
-        description: "The ancient defensive walls surrounding the historic city of Mosul.",
+        description: "The historic defensive walls that once surrounded Mosul, reflecting the city's strategic and cultural importance through centuries.",
         thumbnailPath: "./assets/sites/mosul.webp",
         modelPath: "./assets/models/markers/ASWAR MOSUL.glb",
+        comments: [
+            {
+                id: "c8-1",
+                author: "Bashar Najjar",
+                text: "These walls have witnessed thousands of years of history. Preserving their memory matters more than ever.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 18, // 18h ago
+            },
+            {
+                id: "c8-2",
+                author: "Claire Dubois",
+                text: "A poignant reminder of Mosul's resilience. Thank you to everyone who worked on this reconstruction.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 5, // 5d ago
+            },
+        ],
     },
     {
         id: "9",
@@ -308,52 +421,130 @@ const SITES: HeritageSite[] = [
         position: new Vector3(-13, 1, 17.9),
         markerRotation: Math.PI / 2,
         markerScale: 0.5,
-        description: "An ancient city in the Nineveh Governorate and a UNESCO World Heritage site.",
+        description: "Monumental temple architecture from the ancient city of Hatra, blending Mesopotamian, Greek, and Roman influences.",
         thumbnailPath: "./assets/sites/mosul.webp",
         modelPath: "./assets/models/markers/HATTAR TEMPLE.glb",
+        comments: [
+            {
+                id: "c9-1",
+                author: "Dr. Samuel Okoye",
+                text: "The blend of Hellenistic, Roman and Parthian styles at Hatra is unique. Beautifully captured here.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 7, // 7h ago
+            },
+            {
+                id: "c9-2",
+                author: "Zainab Hourani",
+                text: "Visited as a child decades ago. This brings the temple back to life exactly as I remember it.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 16, // ~2w ago
+            },
+        ],
     },
     {
         id: "10",
-        name: "Babylon",
+        name: "Lion of Babylon",
         position: new Vector3(-2, 1, -2.5),
         markerRotation: Math.PI / 2,
-        description: "One of the most famous cities of antiquity, known for its impressive walls and the Lion of Babylon.",
+        description: "A famous basalt statue symbolizing the power and legacy of ancient Babylon.",
         thumbnailPath: "./assets/sites/baghdad-museum.webp",
         modelPath: "./assets/models/markers/LION OF BABYLON.glb",
+        comments: [
+            {
+                id: "c10-1",
+                author: "Elena Petrova",
+                text: "The Lion of Babylon model is stunning. Seeing it in context with the walls gives such a sense of scale.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 12, // ~2w ago
+            },
+            {
+                id: "c10-2",
+                author: "Yusuf Adnan",
+                text: "Studied Babylon for years and never tire of it. Would love to see the Ishtar Gate added in a future update!",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 40, // ~1mo ago
+            },
+        ],
     },
     {
         id: "11",
-        name: "Malwiya Minaret",
+        name: "Great Mosque of Samarra and Malwiya Minaret",
         position: new Vector3(-5.4, 1, 7.3),
-        description: "The iconic spiraling cone minaret of the Great Mosque of Samarra.",
+        description: "An iconic spiral minaret and one of the most recognizable monuments of early Islamic architecture.",
         thumbnailPath: "./assets/sites/baghdad-museum.webp",
         modelPath: "./assets/models/markers/MALWIAT SAMARA.glb",
+        comments: [
+            {
+                id: "c11-1",
+                author: "Idris Karim",
+                text: "That spiral silhouette is unmistakable. One of the most distinctive structures in the Islamic world.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 4, // 4h ago
+            },
+            {
+                id: "c11-2",
+                author: "Sophie Marchand",
+                text: "Climbing the ramp must have been quite the experience. Wonderful to see it modelled in such detail.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 6, // 6d ago
+            },
+        ],
     },
     {
         id: "12",
-        name: "Anah Minaret",
+        name: "Ana Minaret",
         position: new Vector3(-13.9, 1, 7.8),
-        description: "An ancient minaret representing the historic town of Anah on the Euphrates.",
+        description: "A historic minaret from the ancient town of Ana on the Euphrates, representing Iraq's Islamic architectural heritage.",
         thumbnailPath: "./assets/sites/mosul.webp",
         modelPath: "./assets/models/markers/MANART A'ANA.glb",
+        comments: [
+            {
+                id: "c12-1",
+                author: "Walid Faraj",
+                text: "The Anah minaret was relocated to save it from flooding — a remarkable preservation story in itself.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 20, // 20h ago
+            },
+        ],
     },
     {
         id: "13",
-        name: "Ur Ziggurat",
+        name: "Ziggurat of Ur",
         position: new Vector3(10.0, 1, -18.3),
         markerRotation: Math.PI / 1.5,
-        description: "A Neo-Sumerian ziggurat in the ancient city of Ur near Nasiriyah.",
+        description: "One of the best-preserved Sumerian monuments, built as a massive stepped temple dedicated to the moon god Nanna.",
         thumbnailPath: "./assets/sites/uruk.jpg",
         modelPath: "./assets/models/markers/OUR ZAQURAT.glb",
+        comments: [
+            {
+                id: "c13-1",
+                author: "Grace Thompson",
+                text: "The restored façade and staircase of the ziggurat are magnificent. A masterpiece of Sumerian architecture.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 6, // 6h ago
+            },
+            {
+                id: "c13-2",
+                author: "Ahmed Sabah",
+                text: "Birthplace of Abraham, according to tradition. Standing at its base, you feel connected to the ancients.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 14, // 2w ago
+            },
+        ],
     },
     {
         id: "14",
-        name: "Taq Kasra",
+        name: "Taq Kasra (Arch of Ctesiphon)",
         position: new Vector3(4.5, 1, 7.0),
         markerRotation: Math.PI / -2,
-        description: "The magnificent vault of the palace of the Sasanian kings at Ctesiphon.",
+        description: "The monumental vaulted arch of the Sasanian palace complex at Ctesiphon, one of the largest single-span brick arches in the world.",
         thumbnailPath: "./assets/sites/baghdad-museum.webp",
         modelPath: "./assets/models/markers/TUQ KISRA.glb",
+        comments: [
+            {
+                id: "c14-1",
+                author: "Leila Mansour",
+                text: "The largest single-span brick vault in the world. Sasanian ambition frozen in clay — simply breathtaking.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 9, // 9h ago
+            },
+            {
+                id: "c14-2",
+                author: "Robert Sinclair",
+                text: "Engineers still study this arch today. Amazing that so much of it has survived for 1,400 years.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 8, // ~1w ago
+            },
+        ],
     },
 ];
 
@@ -1677,6 +1868,7 @@ const createMapScene = async () => {
     leftContainer.style.flexDirection = "column";
     leftContainer.style.gap = "20px";
     leftContainer.style.maxWidth = "390px";
+    leftContainer.classList.add("heritage-left-container");
     document.body.appendChild(leftContainer);
 
     // Create website header in top left
@@ -1818,9 +2010,45 @@ const createMapScene = async () => {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.5);
         }
+
+        /* ============================================
+           RESPONSIVE — Phone screens
+           ============================================ */
+        @media (max-width: 640px) {
+            /* Site detail panel: full-width sheet anchored with side margins.
+               Open/close still works via transform (translateX). */
+            .site-detail-panel {
+                width: auto !important;
+                left: 12px !important;
+                right: 12px !important;
+                top: 12px !important;
+                max-height: calc(100dvh - 24px) !important;
+                padding: 18px !important;
+                gap: 14px !important;
+                border-radius: 14px !important;
+            }
+            .site-detail-panel > h2 {
+                font-size: 20px !important;
+            }
+
+            /* Left UI column (header + site list): fit the viewport, no horizontal overflow. */
+            .heritage-left-container {
+                left: 12px !important;
+                right: 12px !important;
+                top: 12px !important;
+                max-width: none !important;
+                gap: 12px !important;
+            }
+            .heritage-site-list {
+                width: auto !important;
+                max-height: 38vh !important;
+                padding: 16px !important;
+            }
+        }
     `;
     document.head.appendChild(style);
     sidePanel.classList.add("custom-scrollbar");
+    sidePanel.classList.add("heritage-site-list");
 
     leftContainer.appendChild(sidePanel);
 
@@ -1835,11 +2063,17 @@ const createMapScene = async () => {
     panelHeader.style.fontWeight = "bold";
     sidePanel.appendChild(panelHeader);
 
+    // Slide transforms for the detail panel. The panel anchors at a fixed `right`
+    // and slides via `transform` (not `right`) so mobile media queries can resize and
+    // reposition it (full-width) without breaking the open/close animation.
+    const PANEL_OPEN_TRANSFORM = "translateX(0) translateZ(0)";
+    const PANEL_CLOSED_TRANSFORM = "translateX(calc(100% + 40px)) translateZ(0)";
+
     // Create right panel for site details (hidden by default)
     const experienceContainer = document.createElement("div");
     experienceContainer.style.position = "fixed";
     experienceContainer.style.top = "20px";
-    experienceContainer.style.right = "-400px"; // Start off-screen
+    experienceContainer.style.right = "20px"; // static anchor; visibility handled via transform
     experienceContainer.style.width = "360px";
     experienceContainer.style.maxHeight = "calc(100vh - 40px)";
     experienceContainer.style.overflowY = "auto";
@@ -1850,15 +2084,16 @@ const createMapScene = async () => {
     experienceContainer.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(201, 168, 76, 0.08) inset";
     experienceContainer.style.borderRadius = "16px";
     experienceContainer.style.padding = "24px";
-    experienceContainer.style.zIndex = "100";
+    experienceContainer.style.zIndex = "300";
     experienceContainer.style.display = "flex";
     experienceContainer.style.flexDirection = "column";
     experienceContainer.style.gap = "20px";
-    experienceContainer.style.transition = "right 0.4s cubic-bezier(0.4, 0, 0.2, 1)";
+    experienceContainer.style.transition = "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)";
     experienceContainer.style.fontFamily = "sans-serif";
     experienceContainer.style.willChange = "transform";
-    experienceContainer.style.transform = "translateZ(0)";
+    experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM; // start off-screen
     experienceContainer.classList.add("custom-scrollbar");
+    experienceContainer.classList.add("site-detail-panel");
     document.body.appendChild(experienceContainer);
 
     // Create site title
@@ -1867,6 +2102,7 @@ const createMapScene = async () => {
     siteTitle.style.fontSize = "24px";
     siteTitle.style.fontWeight = "bold";
     siteTitle.style.color = "white";
+    siteTitle.style.paddingRight = "40px"; // leave room for the close (×) button
     experienceContainer.appendChild(siteTitle);
 
     // Create description text
@@ -1998,6 +2234,10 @@ const createMapScene = async () => {
     });
     experienceContainer.appendChild(startExperienceBtn);
 
+    // Comments section (read-only for now — see scripts/comments/siteComments.ts)
+    const commentsSection = createCommentsSection();
+    experienceContainer.appendChild(commentsSection.element);
+
     let currentFocusedSite: string | null = null;
 
     // Update panel with site data
@@ -2035,6 +2275,9 @@ const createMapScene = async () => {
 
         // Show/hide start button based on interactive availability
         startExperienceBtn.style.display = hasInteractive ? "block" : "none";
+
+        // Populate the comments section for this site
+        commentsSection.update(site);
     };
 
     // Reusable function to animate camera focus
@@ -2134,12 +2377,58 @@ const createMapScene = async () => {
         }
     });
 
+    // Unfocus the current site: slide the panel out and zoom the camera back to the default view
+    const unfocusSite = () => {
+        if (!currentFocusedSite) return;
+        currentFocusedSite = null;
+        experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM; // Animate out
+        animateCameraFocus(Vector3.Zero(), 60);
+    };
+
+    // Close (×) button pinned to the top-right of the site detail panel
+    const closePanelBtn = document.createElement("button");
+    closePanelBtn.setAttribute("aria-label", "Close");
+    closePanelBtn.setAttribute("title", "Close");
+    closePanelBtn.innerHTML = "&times;";
+    closePanelBtn.style.position = "sticky";
+    closePanelBtn.style.top = "0";
+    closePanelBtn.style.alignSelf = "flex-end";
+    closePanelBtn.style.flex = "0 0 auto";
+    closePanelBtn.style.width = "32px";
+    closePanelBtn.style.height = "32px";
+    closePanelBtn.style.marginBottom = "-52px"; // offset button height (32px) + flex gap (20px) so it overlays the corner
+    closePanelBtn.style.display = "flex";
+    closePanelBtn.style.alignItems = "center";
+    closePanelBtn.style.justifyContent = "center";
+    closePanelBtn.style.padding = "0";
+    closePanelBtn.style.fontSize = "22px";
+    closePanelBtn.style.lineHeight = "1";
+    closePanelBtn.style.color = "rgba(255, 255, 255, 0.7)";
+    closePanelBtn.style.background = "rgba(201, 168, 76, 0.08)";
+    closePanelBtn.style.border = "1px solid rgba(201, 168, 76, 0.18)";
+    closePanelBtn.style.borderRadius = "50%";
+    closePanelBtn.style.cursor = "pointer";
+    closePanelBtn.style.zIndex = "3";
+    closePanelBtn.style.backdropFilter = "blur(12px)";
+    closePanelBtn.style.webkitBackdropFilter = "blur(12px)";
+    closePanelBtn.style.transition = "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)";
+    closePanelBtn.addEventListener("mouseenter", () => {
+        closePanelBtn.style.background = "rgba(201, 168, 76, 0.2)";
+        closePanelBtn.style.borderColor = "rgba(201, 168, 76, 0.35)";
+        closePanelBtn.style.color = "#fff";
+    });
+    closePanelBtn.addEventListener("mouseleave", () => {
+        closePanelBtn.style.background = "rgba(201, 168, 76, 0.08)";
+        closePanelBtn.style.borderColor = "rgba(201, 168, 76, 0.18)";
+        closePanelBtn.style.color = "rgba(255, 255, 255, 0.7)";
+    });
+    closePanelBtn.addEventListener("click", unfocusSite);
+    experienceContainer.prepend(closePanelBtn);
+
     // ESC key handler to remove focus
     window.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && currentFocusedSite) {
-            currentFocusedSite = null;
-            experienceContainer.style.right = "-400px"; // Animate out
-            animateCameraFocus(Vector3.Zero(), 60);
+            unfocusSite();
         }
     });
 
@@ -2240,7 +2529,7 @@ const createMapScene = async () => {
 
         siteCard.addEventListener("click", () => {
             currentFocusedSite = site.id;
-            experienceContainer.style.right = "-400px";
+            experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM;
 
             const targetPosition = site.position.clone();
             targetPosition.y = 0;
@@ -2265,7 +2554,7 @@ const createMapScene = async () => {
                 updatePanelWithSite(site);
 
                 // Animate panel in
-                experienceContainer.style.right = "20px";
+                experienceContainer.style.transform = PANEL_OPEN_TRANSFORM;
             });
         });
 
@@ -2377,7 +2666,7 @@ const createMapScene = async () => {
             const clickedMesh = pointerInfo.pickInfo.pickedMesh;
             const target = clickedMesh.name.replace("site-", "");
 
-            experienceContainer.style.right = "-400px"; // Animate out
+            experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM; // Animate out
             currentFocusedSite = target;
 
             // Find and display site description
@@ -2417,7 +2706,7 @@ const createMapScene = async () => {
 
             animateCameraFocus(targetPosition, targetRadius, finalAlpha, animationDuration, () => {
                 // Animate panel in
-                experienceContainer.style.right = "20px";
+                experienceContainer.style.transform = PANEL_OPEN_TRANSFORM;
             });
         } else if (
             pointerInfo.pickInfo?.hit &&
@@ -2426,7 +2715,7 @@ const createMapScene = async () => {
         ) {
             // Clicking the ground/model refocuses to center
             currentFocusedSite = null;
-            experienceContainer.style.right = "-400px"; // Animate out
+            experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM; // Animate out
             animateCameraFocus(Vector3.Zero(), 60);
             aiGuide?.deactivate(); // stop Aoi when you click away from a site
         }

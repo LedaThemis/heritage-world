@@ -168,7 +168,7 @@ export class AiGuide extends LitElement {
             gap: 6px;
         }
         .avatar {
-            height: min(230px, 52vh);
+            height: min(165px, 38vh);
             width: auto;
             display: flex;
             align-items: center;
@@ -374,7 +374,7 @@ export class AiGuide extends LitElement {
         this.history = [];
         this.handsFree = true;
         await this.ask(
-            "(The visitor just said hello to you on the world map of Iraq. Warmly welcome them and invite them to click any heritage site on the map to hear about it.)",
+            "(The visitor just arrived at the world map of Iraq and said hello. Introduce yourself by name and persona (Puabi, the Sumerian queen of Ur, revived to guide them) warmly and with royal charm in 2-3 short sentences, then invite them to click any heritage site on the map to hear about it.)",
             { silentUser: true }
         );
     }
@@ -709,7 +709,7 @@ export class AiGuide extends LitElement {
         const bubble = showBubble
             ? html`
                   <div class="bubble">
-                      <div class="name">Aoi ${pill}</div>
+                      <div class="name">Puabi ${pill}</div>
                       ${this.caption ? html`<div class="text">${this.caption}</div>` : nothing}
                       <div class="foot">${this.handsFree ? "Just speak" : "Tap me to talk"} · ✨ AI, may be imprecise</div>
                   </div>
@@ -718,7 +718,7 @@ export class AiGuide extends LitElement {
 
         return html`
             ${bubble}
-            <div class="avatar-wrap" @click=${this.onAvatarClick} title="Talk to Aoi">
+            <div class="avatar-wrap" @click=${this.onAvatarClick} title="Talk to Puabi">
                 <div class="avatar ${this.status}">
                     <canvas class="rive" ?hidden=${!this.riveReady}></canvas>
                     ${this.riveReady
@@ -728,11 +728,11 @@ export class AiGuide extends LitElement {
                           : html`<img
                                 class="pose"
                                 src=${this.currentPose()}
-                                alt="Aoi"
+                                alt="Puabi"
                                 @error=${() => (this.poseFailed = true)}
                             />`}
                 </div>
-                <div class="tag">Aoi · guide</div>
+                <div class="tag">Puabi · guide</div>
             </div>
         `;
     }

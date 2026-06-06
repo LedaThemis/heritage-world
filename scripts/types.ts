@@ -13,6 +13,18 @@ export interface PlayerRoomType {
     }[];
 }
 
+export interface SiteComment {
+    id: string;
+    /** Display name of the commenter. */
+    author: string;
+    /** Optional avatar image URL. When absent, an initials avatar is rendered. */
+    avatarUrl?: string;
+    /** The comment body. */
+    text: string;
+    /** Creation time as epoch milliseconds. Used to render relative time. */
+    timestamp: number;
+}
+
 export interface HeritageSite {
     id: string;
     name: string;
@@ -31,4 +43,6 @@ export interface HeritageSite {
     virtualWalkthroughUrl?: string;
     sketchfabUrl?: string;
     worldObjects?: { id: string; modelPath: string; position: Vector3; rotation: Vector3; scaling: Vector3 }[];
+    /** Visitor comments shown in the site detail panel (read-only for now). */
+    comments?: SiteComment[];
 }

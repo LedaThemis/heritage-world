@@ -4,6 +4,8 @@ import "./ui/components/website-header";
 import "./ui/components/info-panel";
 import "./ui/components/side-panel";
 import "./ui/components/site-info-panel";
+import "./ui/components/ai-guide";
+import type { AiGuide } from "./ui/components/ai-guide";
 
 import {
     Engine,
@@ -285,6 +287,7 @@ const generateFriendlyName = (): string => {
 const engine = new Engine(canvas, true);
 let activeScene: Scene | null = null;
 let selectedSite: HeritageSite | null = null;
+let aiGuide: AiGuide | null = null;
 const playerEntities: { [key: string]: Mesh | TransformNode } = {};
 const playerNextPosition: { [key: string]: Vector3 } = {};
 const playerNextRotation: { [key: string]: Quaternion } = {};
@@ -1510,6 +1513,23 @@ const createScene = async function (
         loadingScreen.updateProgress(100, "Complete!");
     }
 
+    // ---- Aoi (the on-screen 2D guide) travels with the player into the site ----
+    if (aiGuide) {
+        aiGuide.site = selectedSite;
+        aiGuide.greet(); // she welcomes you to this site, then listens hands-free
+    }
+    const onGuideKey = (e: KeyboardEvent) => {
+        if (e.repeat) return;
+        const k = e.key.toLowerCase();
+        if (k === "e") aiGuide?.greet();
+        else if (k === "v") aiGuide?.toggleListen();
+    };
+    window.addEventListener("keydown", onGuideKey);
+    scene.onDisposeObservable.add(() => {
+        aiGuide?.deactivate();
+        window.removeEventListener("keydown", onGuideKey);
+    });
+
     // Hide loading screen
     setTimeout(() => {
         loadingScreen.remove();
@@ -1892,8 +1912,9 @@ const createMapScene = async () => {
 
     scene.onPointerObservable.add((pointerInfo) => {
         if (pointerInfo.type !== PointerEventTypes.POINTERPICK) return;
-        if (pointerInfo.pickInfo?.hit && pointerInfo.pickInfo.pickedMesh?.name.startsWith("site-")) {
-            const clickedMesh = pointerInfo.pickInfo.pickedMesh;
+        const picked = pointerInfo.pickInfo?.pickedMesh;
+        if (pointerInfo.pickInfo?.hit && picked?.name.startsWith("site-")) {
+            const clickedMesh = picked;
             const target = clickedMesh.name.replace("site-", "");
 
             experienceContainer.style.right = "-400px"; // Animate out
@@ -1904,6 +1925,12 @@ const createMapScene = async () => {
             if (siteData) {
                 // Populate panel with site data
                 updatePanelWithSite(siteData);
+
+                // Have Aoi talk about this site (and listen for follow-up questions).
+                if (aiGuide) {
+                    aiGuide.site = siteData;
+                    aiGuide.greet();
+                }
             }
 
             // Animate camera to focus on the clicked cube
@@ -1941,8 +1968,12 @@ const createMapScene = async () => {
             currentFocusedSite = null;
             experienceContainer.style.right = "-400px"; // Animate out
             animateCameraFocus(Vector3.Zero(), 60);
+            aiGuide?.deactivate(); // stop Aoi when you click away from a site
         }
     });
+
+    // Turn Aoi's mic off when leaving the map (e.g. entering a site).
+    scene.onDisposeObservable.add(() => aiGuide?.deactivate());
 
     return scene;
 };
@@ -1957,9 +1988,16 @@ const startGame = async (nickname: string) => {
         selectedSite?.worldPlayerSpawnPosition,
         selectedSite?.worldPlayerRotation
     );
+    if (aiGuide) aiGuide.site = selectedSite;
 };
 
 registerBuiltInLoaders();
+
+// Mount the AI tour guide (text + voice). Persists across the map and site scenes.
+aiGuide = document.createElement("ai-guide") as AiGuide;
+document.body.appendChild(aiGuide);
+aiGuide.site = selectedSite;
+
 if (LOAD_SITE_ON_START === null) {
     activeScene = await createMapScene();
 } else {
@@ -1985,6 +2023,7 @@ if (LOAD_SITE_ON_START === null) {
             selectedSite.worldPlayerSpawnPosition,
             selectedSite.worldPlayerRotation
         );
+        if (aiGuide) aiGuide.site = selectedSite;
     }
 }
 

@@ -1,9 +1,6 @@
 // TODO: Side panel: Implement "see more" instead of scrollbar
 // TODO: Make side panel a grid
-import "./ui/components/website-header";
-import "./ui/components/info-panel";
-import "./ui/components/side-panel";
-import "./ui/components/site-info-panel";
+
 
 import {
     Engine,
@@ -35,7 +32,15 @@ import {
 } from "@babylonjs/core";
 import { Client, getStateCallbacks, Room } from "colyseus.js";
 import { registerBuiltInLoaders } from "@babylonjs/loaders/dynamic";
+import { createTimelinePanel, destroyTimeline } from "./timeline/timelinePanel";
+import { showInfoCard } from "./timeline/timelineInfoCard";
+import { animateCameraToEra, updateSiteVisibility } from "./timeline/timelineAnimations";
+import { SITE_ERA_MAP, HISTORICAL_ERAS } from "./timeline/timelineData";
+import { initCloudTransition, triggerCloudTransition, disposeCloudTransition } from "./timeline/cloudTransition";
+import { createCommentsSection } from "./comments/siteComments";
 import type { PlayerRoomType, HeritageSite } from "./types";
+import "./ui/components/ai-guide";
+import type { AiGuide } from "./ui/components/ai-guide";
 
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement | null;
 
@@ -71,206 +76,475 @@ const ANIMALS = ["Fox", "Otter", "Panda", "Hawk", "Wolf", "Dolphin", "Lynx", "Ko
 const SITES: HeritageSite[] = [
     ...(import.meta.env.VITE_IS_OFFLINE_SINGLE_SITE === "true"
         ? [
-              {
-                  id: "SINGLE-SCENE",
-                  name: "Single Scene",
-                  position: new Vector3(-15, 1, 15),
-                  description: "A single scene for auto-loading the world without need for user interaction",
-                  thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
-                  worldModelPath: "./assets/models/al-tahira-world.glb",
-                  worldModelScaling: new Vector3(2, 2, 2),
-                  worldObjects: [
-                      {
-                          id: "pot",
-                          modelPath: "./assets/models/museum-models/pot.glb",
-                          position: new Vector3(4.25, -0.75, -20.25),
-                          rotation: new Vector3(-Math.PI / 2, Math.PI / 2, 0),
-                          scaling: new Vector3(0.1, 0.1, 0.1),
-                      },
-                      {
-                          id: "column_base",
-                          modelPath: "./assets/models/museum-models/column_base.glb",
-                          position: new Vector3(-4.25, -0.8, -20.1),
-                          rotation: new Vector3(-Math.PI / 2, 0, 0),
-                          scaling: new Vector3(0.1, 0.1, 0.1),
-                      },
-                      {
-                          id: "three_humans",
-                          modelPath: "./assets/models/museum-models/three_humans.glb",
-                          position: new Vector3(-20.45, 0.5, -2.2),
-                          rotation: new Vector3(Math.PI / 2, (3 * Math.PI) / 2, 0),
-                          scaling: new Vector3(0.25, 0.25, 0.25),
-                      },
-                      {
-                          id: "black_rock",
-                          modelPath: "./assets/models/museum-models/black_rock.glb",
-                          position: new Vector3(-17.75, 0.5, -10.5),
-                          rotation: new Vector3(Math.PI / 2, 0, 0),
-                          scaling: new Vector3(0.25, 0.25, 0.25),
-                      },
-                      {
-                          id: "stone_tablet_i",
-                          modelPath: "./assets/models/museum-models/stone_tablet_i.glb",
-                          position: new Vector3(-15, 0, 13.25),
-                          rotation: new Vector3(-Math.PI / 2, Math.PI / 4, 0),
-                          scaling: new Vector3(0.075, 0.075, 0.075),
-                      },
-                      {
-                          id: "stone_tablet_ii",
-                          modelPath: "./assets/models/museum-models/stone_tablet_ii.glb",
-                          position: new Vector3(-8.05, 0.15, 17.95),
-                          rotation: new Vector3(-Math.PI / 2, (70 / 360) * 2 * Math.PI, 0),
-                          scaling: new Vector3(0.2, 0.2, 0.2),
-                      },
-                      {
-                          id: "stone_tablet_iii",
-                          modelPath: "./assets/models/museum-models/stone_tablet_iii.glb",
-                          position: new Vector3(8.25, 0.05, 18.22),
-                          rotation: new Vector3(-Math.PI / 2, (200 / 360) * (2 * Math.PI), 0),
-                          scaling: new Vector3(0.2, 0.2, 0.2),
-                      },
-                      {
-                          id: "stone_tablet_iv",
-                          modelPath: "./assets/models/museum-models/stone_tablet_iv.glb",
-                          position: new Vector3(15, -0.075, 13.5),
-                          rotation: new Vector3(-Math.PI / 2, (320 / 360) * 2 * Math.PI, 0),
-                          scaling: new Vector3(0.25, 0.25, 0.25),
-                      },
-                      {
-                          id: "church_grand_door",
-                          modelPath: "./assets/models/museum-models/church_grand_door.glb",
-                          position: new Vector3(0, 4.718, 19.701),
-                          rotation: new Vector3(-Math.PI / 2, 0, 0),
-                          scaling: new Vector3(1, 1, 1),
-                      },
-                      {
-                          id: "clay_pot",
-                          modelPath: "./assets/models/museum-models/clay_pot.glb",
-                          position: new Vector3(17.75, -1.35, -10.5),
-                          rotation: new Vector3(-Math.PI / 2, Math.PI, 0),
-                          scaling: new Vector3(0.2, 0.2, 0.2),
-                      },
-                      {
-                          id: "human_skull_ii",
-                          modelPath: "./assets/models/museum-models/human_skull_ii.glb",
-                          position: new Vector3(20.25, -1.17, -2.4),
-                          rotation: new Vector3(-Math.PI / 2, (290 / 360) * (2 * Math.PI), 0),
-                          scaling: new Vector3(0.05, 0.05, 0.05),
-                      },
-                      {
-                          id: "rusted_sword",
-                          modelPath: "./assets/models/museum-models/rusted_sword.glb",
-                          position: new Vector3(7.73, -1.42, -7.21),
-                          rotation: new Vector3(-Math.PI / 2, (135 / 360) * (2 * Math.PI), 0),
-                          scaling: new Vector3(0.09, 0.09, 0.09),
-                      },
-                      {
-                          id: "wooden_cup",
-                          modelPath: "./assets/models/museum-models/wooden_cup.glb",
-                          position: new Vector3(10.37, -1.26, 0.95),
-                          rotation: new Vector3(-Math.PI / 2, (83.6 / 360) * (2 * Math.PI), 0),
-                          scaling: new Vector3(0.05, 0.05, 0.05),
-                      },
-                      {
-                          id: "skeleton",
-                          modelPath: "./assets/models/museum-models/skeleton.glb",
-                          position: new Vector3(-7.76, -1.02, -7.15),
-                          rotation: new Vector3(-Math.PI / 2, (320 / 360) * (2 * Math.PI), 0),
-                          scaling: new Vector3(0.075, 0.075, 0.075),
-                      },
-                      {
-                          id: "clay_bowl",
-                          modelPath: "./assets/models/museum-models/clay_bowl.glb",
-                          position: new Vector3(6.05, -1.08, 8.12),
-                          rotation: new Vector3(-Math.PI / 2, 0, 0),
-                          scaling: new Vector3(0.04, 0.04, 0.04),
-                      },
-                      {
-                          id: "log_container",
-                          modelPath: "./assets/models/museum-models/log_container.glb",
-                          position: new Vector3(-6.1, -1.17, 8.23),
-                          rotation: new Vector3(-Math.PI / 2, (131 / 360) * (2 * Math.PI), 0),
-                          scaling: new Vector3(0.1, 0.1, 0.1),
-                      },
-                      {
-                          id: "fishing_net",
-                          modelPath: "./assets/models/museum-models/fishing_net.glb",
-                          position: new Vector3(-10.35, -1.18, 1.01),
-                          rotation: new Vector3(-Math.PI / 2, (-88 / 360) * (2 * Math.PI), 0),
-                          scaling: new Vector3(0.07, 0.07, 0.07),
-                      },
-                  ],
-              },
-              {
-                  id: "SINGLE-SCENE2",
-                  name: "Single Scene 2",
-                  position: new Vector3(-15, 1, 15),
-                  description: "A single scene for auto-loading the world without need for user interaction",
-                  thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
-                  worldModelPath: "./assets/models/cloister.glb",
-                  worldModelScaling: new Vector3(1, 1, 1),
-                  worldModelRotation: new Vector3(-Math.PI / 2, 0, 0),
-                  worldPlayerSpawnPosition: new Vector3(55, 0, -52),
-                  worldPlayerRotation: new Vector3(0, -Math.PI / 2, 0),
-              },
-          ]
+            {
+                id: "SINGLE-SCENE",
+                name: "Single Scene",
+                position: new Vector3(-15, 1, 15),
+                description: "A single scene for auto-loading the world without need for user interaction",
+                thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
+                worldModelPath: "./assets/models/al-tahira-world.glb",
+                worldModelScaling: new Vector3(2, 2, 2),
+                worldObjects: [
+                    {
+                        id: "pot",
+                        modelPath: "./assets/models/museum-models/pot.glb",
+                        position: new Vector3(4.25, -0.75, -20.25),
+                        rotation: new Vector3(-Math.PI / 2, Math.PI / 2, 0),
+                        scaling: new Vector3(0.1, 0.1, 0.1),
+                    },
+                    {
+                        id: "column_base",
+                        modelPath: "./assets/models/museum-models/column_base.glb",
+                        position: new Vector3(-4.25, -0.8, -20.1),
+                        rotation: new Vector3(-Math.PI / 2, 0, 0),
+                        scaling: new Vector3(0.1, 0.1, 0.1),
+                    },
+                    {
+                        id: "three_humans",
+                        modelPath: "./assets/models/museum-models/three_humans.glb",
+                        position: new Vector3(-20.45, 0.5, -2.2),
+                        rotation: new Vector3(Math.PI / 2, (3 * Math.PI) / 2, 0),
+                        scaling: new Vector3(0.25, 0.25, 0.25),
+                    },
+                    {
+                        id: "black_rock",
+                        modelPath: "./assets/models/museum-models/black_rock.glb",
+                        position: new Vector3(-17.75, 0.5, -10.5),
+                        rotation: new Vector3(Math.PI / 2, 0, 0),
+                        scaling: new Vector3(0.25, 0.25, 0.25),
+                    },
+                    {
+                        id: "stone_tablet_i",
+                        modelPath: "./assets/models/museum-models/stone_tablet_i.glb",
+                        position: new Vector3(-15, 0, 13.25),
+                        rotation: new Vector3(-Math.PI / 2, Math.PI / 4, 0),
+                        scaling: new Vector3(0.075, 0.075, 0.075),
+                    },
+                    {
+                        id: "stone_tablet_ii",
+                        modelPath: "./assets/models/museum-models/stone_tablet_ii.glb",
+                        position: new Vector3(-8.05, 0.15, 17.95),
+                        rotation: new Vector3(-Math.PI / 2, (70 / 360) * 2 * Math.PI, 0),
+                        scaling: new Vector3(0.2, 0.2, 0.2),
+                    },
+                    {
+                        id: "stone_tablet_iii",
+                        modelPath: "./assets/models/museum-models/stone_tablet_iii.glb",
+                        position: new Vector3(8.25, 0.05, 18.22),
+                        rotation: new Vector3(-Math.PI / 2, (200 / 360) * (2 * Math.PI), 0),
+                        scaling: new Vector3(0.2, 0.2, 0.2),
+                    },
+                    {
+                        id: "stone_tablet_iv",
+                        modelPath: "./assets/models/museum-models/stone_tablet_iv.glb",
+                        position: new Vector3(15, -0.075, 13.5),
+                        rotation: new Vector3(-Math.PI / 2, (320 / 360) * 2 * Math.PI, 0),
+                        scaling: new Vector3(0.25, 0.25, 0.25),
+                    },
+                    {
+                        id: "church_grand_door",
+                        modelPath: "./assets/models/museum-models/church_grand_door.glb",
+                        position: new Vector3(0, 4.718, 19.701),
+                        rotation: new Vector3(-Math.PI / 2, 0, 0),
+                        scaling: new Vector3(1, 1, 1),
+                    },
+                    {
+                        id: "clay_pot",
+                        modelPath: "./assets/models/museum-models/clay_pot.glb",
+                        position: new Vector3(17.75, -1.35, -10.5),
+                        rotation: new Vector3(-Math.PI / 2, Math.PI, 0),
+                        scaling: new Vector3(0.2, 0.2, 0.2),
+                    },
+                    {
+                        id: "human_skull_ii",
+                        modelPath: "./assets/models/museum-models/human_skull_ii.glb",
+                        position: new Vector3(20.25, -1.17, -2.4),
+                        rotation: new Vector3(-Math.PI / 2, (290 / 360) * (2 * Math.PI), 0),
+                        scaling: new Vector3(0.05, 0.05, 0.05),
+                    },
+                    {
+                        id: "rusted_sword",
+                        modelPath: "./assets/models/museum-models/rusted_sword.glb",
+                        position: new Vector3(7.73, -1.42, -7.21),
+                        rotation: new Vector3(-Math.PI / 2, (135 / 360) * (2 * Math.PI), 0),
+                        scaling: new Vector3(0.09, 0.09, 0.09),
+                    },
+                    {
+                        id: "wooden_cup",
+                        modelPath: "./assets/models/museum-models/wooden_cup.glb",
+                        position: new Vector3(10.37, -1.26, 0.95),
+                        rotation: new Vector3(-Math.PI / 2, (83.6 / 360) * (2 * Math.PI), 0),
+                        scaling: new Vector3(0.05, 0.05, 0.05),
+                    },
+                    {
+                        id: "skeleton",
+                        modelPath: "./assets/models/museum-models/skeleton.glb",
+                        position: new Vector3(-7.76, -1.02, -7.15),
+                        rotation: new Vector3(-Math.PI / 2, (320 / 360) * (2 * Math.PI), 0),
+                        scaling: new Vector3(0.075, 0.075, 0.075),
+                    },
+                    {
+                        id: "clay_bowl",
+                        modelPath: "./assets/models/museum-models/clay_bowl.glb",
+                        position: new Vector3(6.05, -1.08, 8.12),
+                        rotation: new Vector3(-Math.PI / 2, 0, 0),
+                        scaling: new Vector3(0.04, 0.04, 0.04),
+                    },
+                    {
+                        id: "log_container",
+                        modelPath: "./assets/models/museum-models/log_container.glb",
+                        position: new Vector3(-6.1, -1.17, 8.23),
+                        rotation: new Vector3(-Math.PI / 2, (131 / 360) * (2 * Math.PI), 0),
+                        scaling: new Vector3(0.1, 0.1, 0.1),
+                    },
+                    {
+                        id: "fishing_net",
+                        modelPath: "./assets/models/museum-models/fishing_net.glb",
+                        position: new Vector3(-10.35, -1.18, 1.01),
+                        rotation: new Vector3(-Math.PI / 2, (-88 / 360) * (2 * Math.PI), 0),
+                        scaling: new Vector3(0.07, 0.07, 0.07),
+                    },
+                ],
+            },
+            {
+                id: "SINGLE-SCENE2",
+                name: "Single Scene 2",
+                position: new Vector3(-15, 1, 15),
+                description: "A single scene for auto-loading the world without need for user interaction",
+                thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
+                worldModelPath: "./assets/models/cloister.glb",
+                worldModelScaling: new Vector3(1, 1, 1),
+                worldModelRotation: new Vector3(-Math.PI / 2, 0, 0),
+                worldPlayerSpawnPosition: new Vector3(55, 0, -52),
+                worldPlayerRotation: new Vector3(0, -Math.PI / 2, 0),
+            },
+        ]
         : []),
     {
         id: "1",
-        name: "Hosh Al-Bay'ah Collection",
-        position: new Vector3(-15, 1, 15),
-        description: "A historic collection showcasing traditional architecture and cultural heritage of the region.",
+        name: "Al-Tahira Church Collection",
+        position: new Vector3(-7.5, 1, 20.8),
+        description: "A collection representing the historic Al-Tahira Church complex, one of Mosul's most important Christian heritage landmarks.",
         thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
+        modelPath: "./assets/models/markers/AL-TAHIRA COLECTION.glb",
         worldModelPath: "./assets/models/al-tahira-world.glb",
         worldModelScaling: new Vector3(2, 2, 2),
         websiteUrl: "https://alqaba.com/al-tahira-church",
+        markerScale: 1,
         virtualWalkthroughUrl: "https://www.alqaba.com/al-tahira-church/walkthrough",
         sketchfabUrl:
             "https://sketchfab.com/HusseinYaseen/collections/hosh-al-bayaah-churchs-67ed28d04539400b87073ef37b3218d8",
+        comments: [
+            {
+                id: "c1-1",
+                author: "Layla Hassan",
+                text: "The stonework detail in the courtyard is breathtaking. The 3D scan really captures how light moves through the arches.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 3, // 3h ago
+            },
+            {
+                id: "c1-2",
+                author: "Omar Al-Rashid",
+                text: "Visited the real site last spring — this digital reconstruction does it justice. Wonderful to see it preserved.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 27, // ~1d ago
+            },
+            {
+                id: "c1-3",
+                author: "Dr. Mariam Yousef",
+                text: "A rare example of late-period regional architecture. The Sketchfab collection is a great teaching resource for my students.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 6, // 6d ago
+            },
+        ],
     },
     {
         id: "2",
-        name: "Old City of Mosul",
-        position: new Vector3(-12, 1, 11),
-        description: "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
+        name: "Al-Hadba Minaret",
+        position: new Vector3(-7.4, 1, 20.1),
+        description: "The famous leaning minaret of the Great Mosque of al-Nuri, a symbol of Mosul for centuries.",
         thumbnailPath: "./assets/sites/mosul.webp",
+        modelPath: "./assets/models/markers/MANART AL-HADB'A.glb",
         virtualWalkthroughUrl: "https://www.alqaba.com/old-town/walkthrough",
         websiteUrl: "https://www.alqaba.com/old-town",
+        comments: [
+            {
+                id: "c2-1",
+                author: "Nour Ibrahim",
+                text: "Walking through these streets virtually brought back so many memories. Thank you for keeping the city's spirit alive.",
+                timestamp: Date.now() - 1000 * 60 * 45, // 45m ago
+            },
+            {
+                id: "c2-2",
+                author: "James Whitfield",
+                text: "The reconstruction of the Al-Nuri Mosque area is incredibly moving. An important act of cultural preservation.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 2, // 2d ago
+            },
+        ],
     },
     {
         id: "3",
         name: "Erbil Citadel",
-        position: new Vector3(-7.5, 1, 12.5),
-        description: "One of the oldest continuously inhabited settlements in the world, a UNESCO World Heritage site.",
+        position: new Vector3(-1.6, 1, 24.4),
+        description: "One of the world's oldest continuously inhabited settlements and a UNESCO World Heritage Site dominating central Erbil.",
         thumbnailPath: "./assets/sites/erbil.png",
+        modelPath: "./assets/models/markers/ERBIL CITADEL.glb",
+        comments: [
+            {
+                id: "c3-1",
+                author: "Sara Karim",
+                text: "Over 6,000 years of continuous habitation — standing on the mound, you can feel the weight of that history.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 8, // 8h ago
+            },
+        ],
     },
     {
         id: "4",
-        name: "Baghdad Museum",
-        position: new Vector3(-1.5, 1, -1),
-        description: "Home to priceless artifacts from Mesopotamian civilizations and Iraq's rich cultural history.",
+        name: "Iraqi Museum Gate",
+        position: new Vector3(-1.5, 1, 2.5),
+        markerRotation: Math.PI / 3,
+        markerScale: 0.5,
+        description: "A reconstruction inspired by monumental Mesopotamian gateways displayed and preserved through the Iraqi Museum.",
         thumbnailPath: "./assets/sites/baghdad-museum.webp",
+        modelPath: "./assets/models/markers/THE IRAQI MUSEUM GATE.glb",
         sketchfabUrl: "https://sketchfab.com/HusseinYaseen/collections/iraqi-museum-b2f69baa92d84b50a90711d5db7d7f18",
+        comments: [
+            {
+                id: "c4-1",
+                author: "Anita George",
+                text: "The collection here is world-class. Being able to browse the artifacts in 3D before visiting is fantastic.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 5, // 5h ago
+            },
+            {
+                id: "c4-2",
+                author: "Tariq Mahmoud",
+                text: "So glad these treasures are documented digitally. Every Iraqi should be proud of this heritage.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 4, // 4d ago
+            },
+        ],
     },
     {
         id: "5",
-        name: "Uruk City",
-        position: new Vector3(0, 1, -15),
-        description: "Ancient Sumerian city-state, birthplace of writing and one of the world's first great cities.",
+        name: "Ancient City of Uruk",
+        position: new Vector3(9.4, 1, -8.3),
+        description: "One of the world's earliest cities and a major center of Sumerian civilization associated with the origins of writing and urban life.",
         thumbnailPath: "./assets/sites/uruk.jpg",
+        modelPath: "./assets/models/markers/URUK CITY RUIN.glb",
         sketchfabUrl: "https://sketchfab.com/HusseinYaseen/collections/uruk-city-0281a1d074b74daf937ccd853b9ec4fc",
+        comments: [
+            {
+                id: "c5-1",
+                author: "Prof. Daniel Hart",
+                text: "The birthplace of writing itself. Hard to overstate how important Uruk is to human history.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 2, // 2h ago
+            },
+            {
+                id: "c5-2",
+                author: "Reem Salah",
+                text: "Incredible to think the first cities on Earth rose right here. The ruins model is beautifully detailed.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 9, // ~1w ago
+            },
+            {
+                id: "c5-3",
+                author: "Kenji Watanabe",
+                text: "Used this in my ancient history class — the students were captivated. Thank you for making it accessible.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 22, // ~3w ago
+            },
+        ],
     },
     {
         id: "6",
         name: "Al-Chibayish Marshlands",
-        position: new Vector3(15, 1, -19),
+        position: new Vector3(15.4, 1, -13),
         description: "Unique wetland ecosystem, home to the Marsh Arabs and diverse wildlife in southern Iraq.",
         thumbnailPath: "./assets/sites/marshlands.png",
         modelPath: "./assets/models/mudhif.glb",
+        markerScale: 0.05,
+        markerRotation: Math.PI / 2,
         websiteUrl: "https://alqaba.com/iraq-marshes",
         virtualWalkthroughUrl: "https://www.alqaba.com/iraq-marshes/walkthrough",
         sketchfabUrl:
             "https://sketchfab.com/HusseinYaseen/collections/al-chibayish-marshes-b57822cc6dee4a698669e1e08c1e1f4b",
+        comments: [
+            {
+                id: "c6-1",
+                author: "Fatima Al-Saadi",
+                text: "My grandparents lived among these reeds. Seeing the mudhif reconstructed brought tears to my eyes.",
+                timestamp: Date.now() - 1000 * 60 * 30, // 30m ago
+            },
+            {
+                id: "c6-2",
+                author: "Marcus Lindqvist",
+                text: "One of the oldest continuous cultures on the planet. The wetland atmosphere comes across so well here.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 3, // 3d ago
+            },
+        ],
+    },
+    {
+        id: "7",
+        name: "Al-Ukhaidir Fortress",
+        position: new Vector3(-10.9, 1, -1.6),
+        description: "A large fortified Abbasid-era desert palace renowned for its innovative Islamic architectural design and defensive walls.",
+        thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
+        modelPath: "./assets/models/markers/7SN AL-AKIDER.glb",
+        comments: [
+            {
+                id: "c7-1",
+                author: "Hana Boulos",
+                text: "The scale of this fortress in the middle of the desert is awe-inspiring. Abbasid engineering at its finest.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 11, // 11h ago
+            },
+        ],
+    },
+    {
+        id: "8",
+        name: "Mosul City Walls",
+        position: new Vector3(-8.0, 1, 20.0),
+        description: "The historic defensive walls that once surrounded Mosul, reflecting the city's strategic and cultural importance through centuries.",
+        thumbnailPath: "./assets/sites/mosul.webp",
+        modelPath: "./assets/models/markers/ASWAR MOSUL.glb",
+        comments: [
+            {
+                id: "c8-1",
+                author: "Bashar Najjar",
+                text: "These walls have witnessed thousands of years of history. Preserving their memory matters more than ever.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 18, // 18h ago
+            },
+            {
+                id: "c8-2",
+                author: "Claire Dubois",
+                text: "A poignant reminder of Mosul's resilience. Thank you to everyone who worked on this reconstruction.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 5, // 5d ago
+            },
+        ],
+    },
+    {
+        id: "9",
+        name: "Hatra Temple",
+        position: new Vector3(-13, 1, 17.9),
+        markerRotation: Math.PI / 2,
+        markerScale: 0.5,
+        description: "Monumental temple architecture from the ancient city of Hatra, blending Mesopotamian, Greek, and Roman influences.",
+        thumbnailPath: "./assets/sites/mosul.webp",
+        modelPath: "./assets/models/markers/HATTAR TEMPLE.glb",
+        comments: [
+            {
+                id: "c9-1",
+                author: "Dr. Samuel Okoye",
+                text: "The blend of Hellenistic, Roman and Parthian styles at Hatra is unique. Beautifully captured here.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 7, // 7h ago
+            },
+            {
+                id: "c9-2",
+                author: "Zainab Hourani",
+                text: "Visited as a child decades ago. This brings the temple back to life exactly as I remember it.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 16, // ~2w ago
+            },
+        ],
+    },
+    {
+        id: "10",
+        name: "Lion of Babylon",
+        position: new Vector3(-2, 1, -2.5),
+        markerRotation: Math.PI / 2,
+        description: "A famous basalt statue symbolizing the power and legacy of ancient Babylon.",
+        thumbnailPath: "./assets/sites/baghdad-museum.webp",
+        modelPath: "./assets/models/markers/LION OF BABYLON.glb",
+        comments: [
+            {
+                id: "c10-1",
+                author: "Elena Petrova",
+                text: "The Lion of Babylon model is stunning. Seeing it in context with the walls gives such a sense of scale.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 12, // ~2w ago
+            },
+            {
+                id: "c10-2",
+                author: "Yusuf Adnan",
+                text: "Studied Babylon for years and never tire of it. Would love to see the Ishtar Gate added in a future update!",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 40, // ~1mo ago
+            },
+        ],
+    },
+    {
+        id: "11",
+        name: "Great Mosque of Samarra and Malwiya Minaret",
+        position: new Vector3(-5.4, 1, 7.3),
+        description: "An iconic spiral minaret and one of the most recognizable monuments of early Islamic architecture.",
+        thumbnailPath: "./assets/sites/baghdad-museum.webp",
+        modelPath: "./assets/models/markers/MALWIAT SAMARA.glb",
+        comments: [
+            {
+                id: "c11-1",
+                author: "Idris Karim",
+                text: "That spiral silhouette is unmistakable. One of the most distinctive structures in the Islamic world.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 4, // 4h ago
+            },
+            {
+                id: "c11-2",
+                author: "Sophie Marchand",
+                text: "Climbing the ramp must have been quite the experience. Wonderful to see it modelled in such detail.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 6, // 6d ago
+            },
+        ],
+    },
+    {
+        id: "12",
+        name: "Ana Minaret",
+        position: new Vector3(-13.9, 1, 7.8),
+        description: "A historic minaret from the ancient town of Ana on the Euphrates, representing Iraq's Islamic architectural heritage.",
+        thumbnailPath: "./assets/sites/mosul.webp",
+        modelPath: "./assets/models/markers/MANART A'ANA.glb",
+        comments: [
+            {
+                id: "c12-1",
+                author: "Walid Faraj",
+                text: "The Anah minaret was relocated to save it from flooding — a remarkable preservation story in itself.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 20, // 20h ago
+            },
+        ],
+    },
+    {
+        id: "13",
+        name: "Ziggurat of Ur",
+        position: new Vector3(10.0, 1, -18.3),
+        markerRotation: Math.PI / 1.5,
+        description: "One of the best-preserved Sumerian monuments, built as a massive stepped temple dedicated to the moon god Nanna.",
+        thumbnailPath: "./assets/sites/uruk.jpg",
+        modelPath: "./assets/models/markers/OUR ZAQURAT.glb",
+        comments: [
+            {
+                id: "c13-1",
+                author: "Grace Thompson",
+                text: "The restored façade and staircase of the ziggurat are magnificent. A masterpiece of Sumerian architecture.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 6, // 6h ago
+            },
+            {
+                id: "c13-2",
+                author: "Ahmed Sabah",
+                text: "Birthplace of Abraham, according to tradition. Standing at its base, you feel connected to the ancients.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 14, // 2w ago
+            },
+        ],
+    },
+    {
+        id: "14",
+        name: "Taq Kasra (Arch of Ctesiphon)",
+        position: new Vector3(4.5, 1, 7.0),
+        markerRotation: Math.PI / -2,
+        description: "The monumental vaulted arch of the Sasanian palace complex at Ctesiphon, one of the largest single-span brick arches in the world.",
+        thumbnailPath: "./assets/sites/baghdad-museum.webp",
+        modelPath: "./assets/models/markers/TUQ KISRA.glb",
+        comments: [
+            {
+                id: "c14-1",
+                author: "Leila Mansour",
+                text: "The largest single-span brick vault in the world. Sasanian ambition frozen in clay — simply breathtaking.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 9, // 9h ago
+            },
+            {
+                id: "c14-2",
+                author: "Robert Sinclair",
+                text: "Engineers still study this arch today. Amazing that so much of it has survived for 1,400 years.",
+                timestamp: Date.now() - 1000 * 60 * 60 * 24 * 8, // ~1w ago
+            },
+        ],
     },
 ];
 
@@ -283,8 +557,12 @@ const generateFriendlyName = (): string => {
 };
 
 const engine = new Engine(canvas, true);
+// Cap rendering resolution on high-DPI displays to reduce fill rate
+const maxPixelRatio = Math.min(window.devicePixelRatio, 1.5);
+engine.setHardwareScalingLevel(window.devicePixelRatio / maxPixelRatio);
 let activeScene: Scene | null = null;
 let selectedSite: HeritageSite | null = null;
+let aiGuide: AiGuide | null = null;
 const playerEntities: { [key: string]: Mesh | TransformNode } = {};
 const playerNextPosition: { [key: string]: Vector3 } = {};
 const playerNextRotation: { [key: string]: Quaternion } = {};
@@ -350,7 +628,7 @@ const createNameLabel = (name: string, scene: Scene) => {
     const mat = new StandardMaterial("nameplate-mat", scene);
     mat.diffuseTexture = texture;
     mat.emissiveColor = new Color3(1, 1, 1);
-    mat.backFaceCulling = false;
+    // backFaceCulling stays true (default) — billboard always faces camera
 
     plane.material = mat;
     return plane;
@@ -378,7 +656,7 @@ const createEmoteBubble = (emote: string, scene: Scene) => {
     const mat = new StandardMaterial("emote-mat", scene);
     mat.diffuseTexture = texture;
     mat.emissiveColor = new Color3(1, 1, 1);
-    mat.backFaceCulling = false;
+    // backFaceCulling stays true (default) — billboard always faces camera
     mat.useAlphaFromDiffuseTexture = true;
 
     plane.material = mat;
@@ -388,8 +666,8 @@ const createEmoteBubble = (emote: string, scene: Scene) => {
 const createBillboardLabel = (text: string, scene: Scene) => {
     // Calculate dimensions based on text length
     const textLength = text.length;
-    const textureWidth = Math.max(512, textLength * 80);
-    const textureHeight = 128;
+    const textureWidth = Math.max(256, textLength * 40);
+    const textureHeight = 64;
     const planeWidth = Math.max(4, textLength * 0.5);
     const planeHeight = 1;
 
@@ -405,12 +683,12 @@ const createBillboardLabel = (text: string, scene: Scene) => {
         false
     );
     texture.hasAlpha = true;
-    texture.drawText(text, null, null, "bold 128px Arial", "white", "transparent", true, true);
+    texture.drawText(text, null, null, "bold 64px Arial", "white", "transparent", true, true);
 
     const mat = new StandardMaterial(`map-label-mat-${text}`, scene);
     mat.diffuseTexture = texture;
     mat.emissiveColor = new Color3(1, 1, 1);
-    mat.backFaceCulling = false;
+    // backFaceCulling stays true (default) — billboard always faces camera
 
     plane.material = mat;
     return plane;
@@ -1410,7 +1688,7 @@ const createScene = async function (
     // Enable ambient occlusion
     const ssao = new SSAO2RenderingPipeline("ssao", scene, 1);
     ssao.radius = 1.5;
-    ssao.samples = 16;
+    ssao.samples = 8;
     scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("ssao", camera);
 
     let ground: AbstractMesh | TransformNode;
@@ -1532,6 +1810,23 @@ const createScene = async function (
         }
     });
 
+    // ---- Aoi (the on-screen guide) travels with the player into the site ----
+    if (aiGuide) {
+        aiGuide.site = selectedSite;
+        aiGuide.greet(); // she welcomes you to this site, then listens hands-free
+    }
+    const onGuideKey = (e: KeyboardEvent) => {
+        if (e.repeat) return;
+        const k = e.key.toLowerCase();
+        if (k === "e") aiGuide?.greet();
+        else if (k === "v") aiGuide?.toggleListen();
+    };
+    window.addEventListener("keydown", onGuideKey);
+    scene.onDisposeObservable.add(() => {
+        aiGuide?.deactivate();
+        window.removeEventListener("keydown", onGuideKey);
+    });
+
     return scene;
 };
 
@@ -1558,7 +1853,8 @@ const createMapScene = async () => {
     // Enable ambient occlusion
     const ssao = new SSAO2RenderingPipeline("ssao", scene, 1);
     ssao.radius = 1.5;
-    ssao.samples = 16;
+    ssao.samples = 8;
+    ssao.textureSamples = 1; // No MSAA on the SSAO texture — unnecessary for a blur effect
     scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("ssao", camera);
 
     // Create container for left-side UI elements
@@ -1572,35 +1868,416 @@ const createMapScene = async () => {
     leftContainer.style.flexDirection = "column";
     leftContainer.style.gap = "20px";
     leftContainer.style.maxWidth = "390px";
+    leftContainer.classList.add("heritage-left-container");
     document.body.appendChild(leftContainer);
 
-    const websiteHeader = document.createElement("website-header");
+    // Create website header in top left
+    const websiteHeader = document.createElement("div");
+    websiteHeader.style.padding = "20px";
+    websiteHeader.style.background = "rgba(10, 8, 5, 0.88)";
+    websiteHeader.style.backdropFilter = "blur(12px)";
+    websiteHeader.style.webkitBackdropFilter = "blur(12px)";
+    websiteHeader.style.border = "1px solid rgba(201, 168, 76, 0.18)";
+    websiteHeader.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(201, 168, 76, 0.08) inset";
+    websiteHeader.style.borderRadius = "16px";
+    websiteHeader.style.color = "white";
+    websiteHeader.style.fontFamily = "sans-serif";
+    websiteHeader.style.pointerEvents = "none";
+    websiteHeader.style.willChange = "transform";
+    websiteHeader.style.transform = "translateZ(0)";
+
+    const mainTitle = document.createElement("h1");
+    mainTitle.textContent = "Heritage Iraq";
+    mainTitle.style.margin = "0";
+    mainTitle.style.fontSize = "32px";
+    mainTitle.style.fontWeight = "bold";
+    mainTitle.style.letterSpacing = "0.5px";
+    websiteHeader.appendChild(mainTitle);
+
+    const subtitle = document.createElement("p");
+    subtitle.textContent = "A 3D Interactive Heritage Experience";
+    subtitle.style.margin = "4px 0 0 0";
+    subtitle.style.fontSize = "14px";
+    subtitle.style.fontWeight = "300";
+    subtitle.style.opacity = "0.9";
+    subtitle.style.letterSpacing = "0.3px";
+    websiteHeader.appendChild(subtitle);
+
     leftContainer.appendChild(websiteHeader);
-    const infoPanel = document.createElement("info-panel");
+
+    // Create info panel (left side)
+    const infoPanel = document.createElement("div");
+    infoPanel.style.width = "350px";
+    infoPanel.style.maxHeight = "calc(100vh - 200px)";
+    infoPanel.style.overflowY = "auto";
+    infoPanel.style.background = "rgba(10, 8, 5, 0.88)";
+    infoPanel.style.backdropFilter = "blur(12px)";
+    infoPanel.style.webkitBackdropFilter = "blur(12px)";
+    infoPanel.style.border = "1px solid rgba(201, 168, 76, 0.18)";
+    infoPanel.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(201, 168, 76, 0.08) inset";
+    infoPanel.style.borderRadius = "16px";
+    infoPanel.style.padding = "20px";
+    infoPanel.style.color = "white";
+    infoPanel.style.fontFamily = "sans-serif";
+    infoPanel.style.willChange = "transform";
+    infoPanel.style.transform = "translateZ(0)";
     leftContainer.appendChild(infoPanel);
-    const sidePanel = document.createElement("side-panel");
-    leftContainer.appendChild(sidePanel);
-    const experienceContainer = document.createElement("site-info-panel");
-    experienceContainer.onStartExperience = async () => {
-        if (currentFocusedSite) {
-            selectedSite = SITES.find((s) => s.id === currentFocusedSite) || null;
 
-            // Clean up map scene UI
-            infoPanel.remove();
-            sidePanel.remove();
-            experienceContainer.remove();
+    // Info panel header
+    const infoPanelHeader = document.createElement("h2");
+    infoPanelHeader.textContent = "About";
+    infoPanelHeader.style.margin = "0 0 16px 0";
+    infoPanelHeader.style.fontSize = "24px";
+    infoPanelHeader.style.fontWeight = "bold";
+    infoPanel.appendChild(infoPanelHeader);
 
-            // Start game with randomly generated name
-            const nickname = generateFriendlyName();
-            await startGame(nickname);
+    // Info panel content
+    const infoContent = document.createElement("p");
+    infoContent.textContent =
+        "Explore Iraq's rich cultural heritage through this immersive 3D experience. Navigate through historic sites, ancient cities, and natural wonders that have shaped the cradle of civilization for millennia.";
+    infoContent.style.margin = "0 0 20px 0";
+    infoContent.style.fontSize = "14px";
+    infoContent.style.lineHeight = "1.6";
+    infoContent.style.color = "rgba(255, 255, 255, 0.9)";
+    infoPanel.appendChild(infoContent);
+
+    const creditsLink = document.createElement("a");
+    creditsLink.textContent = "Learn more →";
+    creditsLink.href = "/credits.html";
+    creditsLink.style.color = "#60a5fa";
+    creditsLink.style.fontSize = "13px";
+    creditsLink.style.textDecoration = "none";
+    creditsLink.style.fontWeight = "500";
+    creditsLink.style.transition = "color 0.2s ease";
+    creditsLink.style.pointerEvents = "auto";
+    creditsLink.addEventListener("mouseenter", () => {
+        creditsLink.style.color = "#93c5fd";
+    });
+    creditsLink.addEventListener("mouseleave", () => {
+        creditsLink.style.color = "#60a5fa";
+    });
+    infoPanel.appendChild(creditsLink);
+
+    // Create header with tip
+    const headerTip = document.createElement("div");
+    headerTip.textContent = "Tip: click on a site for more details";
+    headerTip.style.position = "fixed";
+    headerTip.style.top = "20px";
+    headerTip.style.left = "50%";
+    headerTip.style.transform = "translateX(-50%)";
+    headerTip.style.padding = "12px 24px";
+    headerTip.style.fontSize = "18px";
+    headerTip.style.fontWeight = "500";
+    headerTip.style.color = "white";
+    headerTip.style.background = "rgba(0, 0, 0, 0.5)";
+    headerTip.style.borderRadius = "8px";
+    headerTip.style.zIndex = "100";
+    headerTip.style.pointerEvents = "none";
+    headerTip.style.opacity = "0"; // TODO: Do we show or hide it? It makes the site "cluttery"
+    document.body.appendChild(headerTip);
+
+    // Create side panel
+    const sidePanel = document.createElement("div");
+    sidePanel.style.width = "350px";
+    sidePanel.style.maxHeight = "calc(60vh - 40px - 40px)";
+    sidePanel.style.overflowY = "auto";
+    sidePanel.style.background = "rgba(10, 8, 5, 0.88)";
+    sidePanel.style.backdropFilter = "blur(12px)";
+    sidePanel.style.webkitBackdropFilter = "blur(12px)";
+    sidePanel.style.border = "1px solid rgba(201, 168, 76, 0.18)";
+    sidePanel.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(201, 168, 76, 0.08) inset";
+    sidePanel.style.borderRadius = "16px";
+    sidePanel.style.padding = "20px";
+    sidePanel.style.color = "white";
+    sidePanel.style.fontFamily = "sans-serif";
+    sidePanel.style.willChange = "transform";
+    sidePanel.style.transform = "translateZ(0)";
+
+    // Custom scrollbar styling
+    const style = document.createElement("style");
+    style.textContent = `
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
         }
-    };
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* ============================================
+           RESPONSIVE — Phone screens
+           ============================================ */
+        @media (max-width: 640px) {
+            /* Site detail panel: full-width sheet anchored with side margins.
+               Open/close still works via transform (translateX). */
+            .site-detail-panel {
+                width: auto !important;
+                left: 12px !important;
+                right: 12px !important;
+                top: 12px !important;
+                max-height: calc(100dvh - 24px) !important;
+                padding: 18px !important;
+                gap: 14px !important;
+                border-radius: 14px !important;
+            }
+            .site-detail-panel > h2 {
+                font-size: 20px !important;
+            }
+
+            /* Left UI column (header + site list): fit the viewport, no horizontal overflow. */
+            .heritage-left-container {
+                left: 12px !important;
+                right: 12px !important;
+                top: 12px !important;
+                max-width: none !important;
+                gap: 12px !important;
+            }
+            .heritage-site-list {
+                width: auto !important;
+                max-height: 38vh !important;
+                padding: 16px !important;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    sidePanel.classList.add("custom-scrollbar");
+    sidePanel.classList.add("heritage-site-list");
+
+    leftContainer.appendChild(sidePanel);
+
+
+    // Panel header
+    const panelHeader = document.createElement("h2");
+    panelHeader.textContent = "Heritage Sites";
+    panelHeader.style.position = "relative";
+    panelHeader.style.top = "0";
+    panelHeader.style.margin = "0 0 16px 0";
+    panelHeader.style.fontSize = "24px";
+    panelHeader.style.fontWeight = "bold";
+    sidePanel.appendChild(panelHeader);
+
+    // Slide transforms for the detail panel. The panel anchors at a fixed `right`
+    // and slides via `transform` (not `right`) so mobile media queries can resize and
+    // reposition it (full-width) without breaking the open/close animation.
+    const PANEL_OPEN_TRANSFORM = "translateX(0) translateZ(0)";
+    const PANEL_CLOSED_TRANSFORM = "translateX(calc(100% + 40px)) translateZ(0)";
+
+    // Create right panel for site details (hidden by default)
+    const experienceContainer = document.createElement("div");
+    experienceContainer.style.position = "fixed";
+    experienceContainer.style.top = "20px";
+    experienceContainer.style.right = "20px"; // static anchor; visibility handled via transform
+    experienceContainer.style.width = "360px";
+    experienceContainer.style.maxHeight = "calc(100vh - 40px)";
+    experienceContainer.style.overflowY = "auto";
+    experienceContainer.style.background = "rgba(10, 8, 5, 0.88)";
+    experienceContainer.style.backdropFilter = "blur(12px)";
+    experienceContainer.style.webkitBackdropFilter = "blur(12px)";
+    experienceContainer.style.border = "1px solid rgba(201, 168, 76, 0.18)";
+    experienceContainer.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(201, 168, 76, 0.08) inset";
+    experienceContainer.style.borderRadius = "16px";
+    experienceContainer.style.padding = "24px";
+    experienceContainer.style.zIndex = "300";
+    experienceContainer.style.display = "flex";
+    experienceContainer.style.flexDirection = "column";
+    experienceContainer.style.gap = "20px";
+    experienceContainer.style.transition = "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)";
+    experienceContainer.style.fontFamily = "sans-serif";
+    experienceContainer.style.willChange = "transform";
+    experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM; // start off-screen
+    experienceContainer.classList.add("custom-scrollbar");
+    experienceContainer.classList.add("site-detail-panel");
     document.body.appendChild(experienceContainer);
+
+    // Create site title
+    const siteTitle = document.createElement("h2");
+    siteTitle.style.margin = "0";
+    siteTitle.style.fontSize = "24px";
+    siteTitle.style.fontWeight = "bold";
+    siteTitle.style.color = "white";
+    siteTitle.style.paddingRight = "40px"; // leave room for the close (×) button
+    experienceContainer.appendChild(siteTitle);
+
+    // Create description text
+    const descriptionBox = document.createElement("p");
+    descriptionBox.style.margin = "0";
+    descriptionBox.style.fontSize = "15px";
+    descriptionBox.style.lineHeight = "1.6";
+    descriptionBox.style.color = "rgba(255, 255, 255, 0.9)";
+    experienceContainer.appendChild(descriptionBox);
+
+    // Create features section
+    const featuresSection = document.createElement("div");
+    featuresSection.style.display = "flex";
+    featuresSection.style.flexDirection = "column";
+    featuresSection.style.gap = "12px";
+    featuresSection.style.marginTop = "8px";
+    experienceContainer.appendChild(featuresSection);
+
+    const featuresTitle = document.createElement("h3");
+    featuresTitle.textContent = "Available Features";
+    featuresTitle.style.margin = "0 0 8px 0";
+    featuresTitle.style.fontSize = "16px";
+    featuresTitle.style.fontWeight = "600";
+    featuresTitle.style.color = "white";
+    featuresSection.appendChild(featuresTitle);
+
+    const createFeatureItem = (label: string, available: boolean, url?: string) => {
+        const item = document.createElement("div");
+        item.style.display = "flex";
+        item.style.flexDirection = "column";
+        item.style.gap = "8px";
+        item.style.fontSize = "14px";
+        item.style.color = available ? "rgba(255, 255, 255, 0.9)" : "rgba(255, 255, 255, 0.4)";
+        item.style.padding = "12px";
+        item.style.background = "rgba(255, 255, 255, 0.05)";
+        item.style.borderRadius = "8px";
+
+        const header = document.createElement("div");
+        header.style.display = "flex";
+        header.style.alignItems = "center";
+        header.style.gap = "10px";
+
+        const checkmark = document.createElement("span");
+        checkmark.textContent = available ? "✓" : "✗";
+        checkmark.style.fontSize = "18px";
+        checkmark.style.fontWeight = "bold";
+        checkmark.style.color = available ? "#10b981" : "rgba(255, 255, 255, 0.3)";
+        header.appendChild(checkmark);
+
+        const text = document.createElement("span");
+        text.textContent = label;
+        text.style.fontWeight = "600";
+        header.appendChild(text);
+
+        item.appendChild(header);
+
+        if (url || label.includes("Interactive")) {
+            const linkText = document.createElement("p");
+            linkText.style.margin = "0 0 4px 28px";
+            linkText.style.fontSize = "13px";
+            linkText.style.color = "rgba(255, 255, 255, 0.7)";
+
+            if (label.includes("Sketchfab")) {
+                linkText.textContent = "You can view the Sketchfab collection at:";
+            } else if (label.includes("Website")) {
+                linkText.textContent = "You can visit the external website at:";
+            } else if (label.includes("Virtual Walkthrough")) {
+                linkText.textContent = "You can experience the virtual walkthrough at:";
+            } else if (label.includes("Interactive")) {
+                linkText.textContent =
+                    'You can immerse yourself in the interactive experience by clicking "Start Experience" below.';
+            }
+            item.appendChild(linkText);
+
+            if (url) {
+                const link = document.createElement("a");
+                link.href = url;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                link.textContent = url;
+                link.style.color = "#60a5fa";
+                link.style.fontSize = "13px";
+                link.style.textDecoration = "none";
+                link.style.marginLeft = "28px";
+                link.style.wordBreak = "break-all";
+                link.style.transition = "color 0.2s ease";
+                link.addEventListener("mouseenter", () => {
+                    link.style.color = "#93c5fd";
+                });
+                link.addEventListener("mouseleave", () => {
+                    link.style.color = "#60a5fa";
+                });
+                item.appendChild(link);
+            }
+        }
+
+        return item;
+    };
+
+    const websiteFeature = createFeatureItem("External Website", false);
+    const virtualWalkthroughFeature = createFeatureItem("Virtual Walkthrough", false);
+    const sketchfabFeature = createFeatureItem("Sketchfab 3D Collection", false);
+    const interactiveFeature = createFeatureItem("Interactive Experience", false);
+
+    featuresSection.appendChild(websiteFeature);
+    featuresSection.appendChild(virtualWalkthroughFeature);
+    featuresSection.appendChild(sketchfabFeature);
+    featuresSection.appendChild(interactiveFeature);
+
+    // Create Start Experience button (only visible if interactive experience exists)
+    const startExperienceBtn = document.createElement("button");
+    startExperienceBtn.textContent = "Start Experience";
+    startExperienceBtn.style.width = "100%";
+    startExperienceBtn.style.padding = "12px 32px";
+    startExperienceBtn.style.fontSize = "16px";
+    startExperienceBtn.style.fontWeight = "bold";
+    startExperienceBtn.style.background = "#3b82f6";
+    startExperienceBtn.style.color = "white";
+    startExperienceBtn.style.border = "none";
+    startExperienceBtn.style.borderRadius = "8px";
+    startExperienceBtn.style.cursor = "pointer";
+    startExperienceBtn.style.transition = "all 0.2s ease";
+    startExperienceBtn.style.marginTop = "8px";
+    startExperienceBtn.addEventListener("mouseenter", () => {
+        startExperienceBtn.style.background = "#2563eb";
+    });
+    startExperienceBtn.addEventListener("mouseleave", () => {
+        startExperienceBtn.style.background = "#3b82f6";
+    });
+    experienceContainer.appendChild(startExperienceBtn);
+
+    // Comments section (read-only for now — see scripts/comments/siteComments.ts)
+    const commentsSection = createCommentsSection();
+    experienceContainer.appendChild(commentsSection.element);
 
     let currentFocusedSite: string | null = null;
 
+    // Update panel with site data
     const updatePanelWithSite = (site: HeritageSite) => {
-        experienceContainer.site = site;
+        siteTitle.textContent = site.name;
+        descriptionBox.textContent = site.description;
+
+        // Clear existing features
+        while (featuresSection.children.length > 1) {
+            featuresSection.removeChild(featuresSection.lastChild!);
+        }
+
+        // Add only available features
+        const hasWebsite = !!site.websiteUrl;
+        const hasVirtualWalkthrough = !!site.virtualWalkthroughUrl;
+        const hasSketchfab = !!site.sketchfabUrl;
+        const hasInteractive = !!site.worldModelPath;
+
+        if (hasWebsite) {
+            featuresSection.appendChild(createFeatureItem("External Website", true, site.websiteUrl));
+        }
+        if (hasVirtualWalkthrough) {
+            featuresSection.appendChild(createFeatureItem("Virtual Walkthrough", true, site.virtualWalkthroughUrl));
+        }
+        if (hasSketchfab) {
+            featuresSection.appendChild(createFeatureItem("Sketchfab 3D Collection", true, site.sketchfabUrl));
+        }
+        if (hasInteractive) {
+            featuresSection.appendChild(createFeatureItem("Interactive Experience", true));
+        }
+
+        // Show/hide features section if no features available
+        featuresSection.style.display =
+            hasWebsite || hasVirtualWalkthrough || hasSketchfab || hasInteractive ? "flex" : "none";
+
+        // Show/hide start button based on interactive availability
+        startExperienceBtn.style.display = hasInteractive ? "block" : "none";
+
+        // Populate the comments section for this site
+        commentsSection.update(site);
     };
 
     // Reusable function to animate camera focus
@@ -1680,14 +2357,78 @@ const createMapScene = async () => {
         }
     };
 
-    // startExperienceBtn.addEventListener("click", );
+    startExperienceBtn.addEventListener("click", async () => {
+        if (currentFocusedSite) {
+            // Store the selected site
+            const site = SITES.find((s) => s.id === currentFocusedSite);
+            selectedSite = site || null;
+
+            // Clean up map scene UI
+            infoPanel.remove();
+            sidePanel.remove();
+            headerTip.remove();
+            experienceContainer.remove();
+            destroyTimeline();
+            disposeCloudTransition();
+
+            // Start game with randomly generated name
+            const nickname = generateFriendlyName();
+            await startGame(nickname);
+        }
+    });
+
+    // Unfocus the current site: slide the panel out and zoom the camera back to the default view
+    const unfocusSite = () => {
+        if (!currentFocusedSite) return;
+        currentFocusedSite = null;
+        experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM; // Animate out
+        animateCameraFocus(Vector3.Zero(), 60);
+    };
+
+    // Close (×) button pinned to the top-right of the site detail panel
+    const closePanelBtn = document.createElement("button");
+    closePanelBtn.setAttribute("aria-label", "Close");
+    closePanelBtn.setAttribute("title", "Close");
+    closePanelBtn.innerHTML = "&times;";
+    closePanelBtn.style.position = "sticky";
+    closePanelBtn.style.top = "0";
+    closePanelBtn.style.alignSelf = "flex-end";
+    closePanelBtn.style.flex = "0 0 auto";
+    closePanelBtn.style.width = "32px";
+    closePanelBtn.style.height = "32px";
+    closePanelBtn.style.marginBottom = "-52px"; // offset button height (32px) + flex gap (20px) so it overlays the corner
+    closePanelBtn.style.display = "flex";
+    closePanelBtn.style.alignItems = "center";
+    closePanelBtn.style.justifyContent = "center";
+    closePanelBtn.style.padding = "0";
+    closePanelBtn.style.fontSize = "22px";
+    closePanelBtn.style.lineHeight = "1";
+    closePanelBtn.style.color = "rgba(255, 255, 255, 0.7)";
+    closePanelBtn.style.background = "rgba(201, 168, 76, 0.08)";
+    closePanelBtn.style.border = "1px solid rgba(201, 168, 76, 0.18)";
+    closePanelBtn.style.borderRadius = "50%";
+    closePanelBtn.style.cursor = "pointer";
+    closePanelBtn.style.zIndex = "3";
+    closePanelBtn.style.backdropFilter = "blur(12px)";
+    closePanelBtn.style.webkitBackdropFilter = "blur(12px)";
+    closePanelBtn.style.transition = "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)";
+    closePanelBtn.addEventListener("mouseenter", () => {
+        closePanelBtn.style.background = "rgba(201, 168, 76, 0.2)";
+        closePanelBtn.style.borderColor = "rgba(201, 168, 76, 0.35)";
+        closePanelBtn.style.color = "#fff";
+    });
+    closePanelBtn.addEventListener("mouseleave", () => {
+        closePanelBtn.style.background = "rgba(201, 168, 76, 0.08)";
+        closePanelBtn.style.borderColor = "rgba(201, 168, 76, 0.18)";
+        closePanelBtn.style.color = "rgba(255, 255, 255, 0.7)";
+    });
+    closePanelBtn.addEventListener("click", unfocusSite);
+    experienceContainer.prepend(closePanelBtn);
 
     // ESC key handler to remove focus
     window.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && currentFocusedSite) {
-            currentFocusedSite = null;
-            experienceContainer.style.right = "-400px"; // Animate out
-            animateCameraFocus(Vector3.Zero(), 60);
+            unfocusSite();
         }
     });
 
@@ -1719,7 +2460,7 @@ const createMapScene = async () => {
     });
 
     // Create cylindrical fog wall particle system around the perimeter
-    const fogWallParticleSystem = new GPUParticleSystem("fogWallParticles", { capacity: 5000 }, scene);
+    const fogWallParticleSystem = new GPUParticleSystem("fogWallParticles", { capacity: 2000 }, scene);
 
     // Use cylinder particle emitter type for cylindrical fog wall
     fogWallParticleSystem.particleEmitterType = new CylinderParticleEmitter(30, 30, 2.5);
@@ -1734,8 +2475,8 @@ const createMapScene = async () => {
     fogWallParticleSystem.colorDead = new Color4(0.85, 0.85, 0.85, 0.1);
 
     // Size configuration - larger particles for wall effect
-    fogWallParticleSystem.minSize = 5;
-    fogWallParticleSystem.maxSize = 8 * 2;
+    fogWallParticleSystem.minSize = 8;
+    fogWallParticleSystem.maxSize = 20;
 
     // Lifetime - persistent fog
     fogWallParticleSystem.minLifeTime = Number.MAX_SAFE_INTEGER;
@@ -1760,6 +2501,11 @@ const createMapScene = async () => {
     // Start the fog wall
     fogWallParticleSystem.start();
 
+    // Initialize cloud transition system (uses same smoke.png texture)
+    initCloudTransition(scene, fogWallParticleSystem);
+
+
+
     // Populate side panel with sites
     SITES.forEach((site) => {
         const siteCard = document.createElement("div");
@@ -1783,7 +2529,7 @@ const createMapScene = async () => {
 
         siteCard.addEventListener("click", () => {
             currentFocusedSite = site.id;
-            experienceContainer.style.right = "-400px";
+            experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM;
 
             const targetPosition = site.position.clone();
             targetPosition.y = 0;
@@ -1808,7 +2554,7 @@ const createMapScene = async () => {
                 updatePanelWithSite(site);
 
                 // Animate panel in
-                experienceContainer.style.right = "20px";
+                experienceContainer.style.transform = PANEL_OPEN_TRANSFORM;
             });
         });
 
@@ -1842,6 +2588,9 @@ const createMapScene = async () => {
         sidePanel.appendChild(siteCard);
     });
 
+    // Track site meshes for timeline visibility control
+    const siteClickBoxes = new Map<string, AbstractMesh[]>();
+
     SITES.forEach(async (site) => {
         // Create invisible clickable box for all sites (for detecting clicks)
         const clickBox = MeshBuilder.CreateBox(`site-${site.id}`, { size: 2 }, scene);
@@ -1849,24 +2598,36 @@ const createMapScene = async () => {
         clickBox.isPickable = true;
         clickBox.visibility = 0; // Invisible but still pickable
 
+        // Register this site's meshes for timeline visibility
+        const siteMeshes: AbstractMesh[] = [];
+
         if (site.modelPath) {
             // Load 3D model if modelPath is provided
             const modelData = await ImportMeshAsync(site.modelPath, scene);
             const rootMesh = modelData.meshes[0];
 
+            let renderedMaxDim = 50; // fallback
             if (rootMesh) {
-                // Calculate bounding box to find center
+                // Calculate bounding box (true rendered size, incl. the model's internal scaling)
                 const boundingInfo = rootMesh.getHierarchyBoundingVectors();
                 const center = boundingInfo.max.add(boundingInfo.min).scale(0.5);
 
                 // Move model so its center is at origin
                 rootMesh.position.subtractInPlace(center);
+
+                const size = boundingInfo.max.subtract(boundingInfo.min);
+                renderedMaxDim = Math.max(size.x, size.y, size.z) || 50;
             }
 
             // Create parent container for positioning
             const siteContainer = new TransformNode(`site-model-${site.id}`, scene);
             siteContainer.position.copyFrom(site.position);
-            siteContainer.scaling = new Vector3(0.075, 0.075, 0.075);
+            // Normalize every marker to the same on-screen size (≈ marshlands), regardless of how
+            // big/small the model is intrinsically. Per-site markerScale still overrides if set.
+            const MARKER_TARGET = 3.75;
+            const markerScale = site.markerScale ?? MARKER_TARGET / renderedMaxDim;
+            siteContainer.scaling = new Vector3(markerScale, markerScale, markerScale);
+            siteContainer.rotation.y = site.markerRotation ?? 0;
             siteContainer.position.subtractInPlace(new Vector3(0, 0.25, 0));
 
             // Parent all meshes to the container
@@ -1875,6 +2636,7 @@ const createMapScene = async () => {
                     mesh.parent = siteContainer;
                 }
                 mesh.isPickable = false; // Don't pick individual model meshes
+                siteMeshes.push(mesh);
             });
         } else {
             // Create visible material for box if no model is provided
@@ -1882,13 +2644,21 @@ const createMapScene = async () => {
             boxMat.diffuseColor = new Color3(246 / 255, 215 / 255, 176 / 255);
             clickBox.material = boxMat;
             clickBox.visibility = 1; // Make visible
+            siteMeshes.push(clickBox);
         }
 
         // Create and position label above the site
         const label = createBillboardLabel(site.name, scene);
         label.position.copyFrom(site.position);
         label.position.y += 3;
+        siteMeshes.push(label);
+
+        // Register for timeline visibility
+        siteClickBoxes.set(site.name, siteMeshes);
     });
+
+    // Only ray-test against site markers, skip the Iraq model's many sub-meshes
+    scene.pointerDownPredicate = (mesh) => mesh.isPickable && mesh.name.startsWith("site-");
 
     scene.onPointerObservable.add((pointerInfo) => {
         if (pointerInfo.type !== PointerEventTypes.POINTERPICK) return;
@@ -1896,7 +2666,7 @@ const createMapScene = async () => {
             const clickedMesh = pointerInfo.pickInfo.pickedMesh;
             const target = clickedMesh.name.replace("site-", "");
 
-            experienceContainer.style.right = "-400px"; // Animate out
+            experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM; // Animate out
             currentFocusedSite = target;
 
             // Find and display site description
@@ -1904,6 +2674,12 @@ const createMapScene = async () => {
             if (siteData) {
                 // Populate panel with site data
                 updatePanelWithSite(siteData);
+
+                // Aoi talks about the clicked site (and listens for follow-up questions)
+                if (aiGuide) {
+                    aiGuide.site = siteData;
+                    aiGuide.greet();
+                }
             }
 
             // Animate camera to focus on the clicked cube
@@ -1930,7 +2706,7 @@ const createMapScene = async () => {
 
             animateCameraFocus(targetPosition, targetRadius, finalAlpha, animationDuration, () => {
                 // Animate panel in
-                experienceContainer.style.right = "20px";
+                experienceContainer.style.transform = PANEL_OPEN_TRANSFORM;
             });
         } else if (
             pointerInfo.pickInfo?.hit &&
@@ -1939,10 +2715,50 @@ const createMapScene = async () => {
         ) {
             // Clicking the ground/model refocuses to center
             currentFocusedSite = null;
-            experienceContainer.style.right = "-400px"; // Animate out
+            experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM; // Animate out
             animateCameraFocus(Vector3.Zero(), 60);
+            aiGuide?.deactivate(); // stop Aoi when you click away from a site
         }
     });
+
+    // Turn Aoi's mic off when leaving the map (e.g. entering a site).
+    scene.onDisposeObservable.add(() => aiGuide?.deactivate());
+
+    // --- Mount Timeline Navigation ---
+    // Track whether this is the initial load (skip transition for first era)
+    let isInitialEraLoad = true;
+
+    createTimelinePanel({
+        onEraChange: (era, _index) => {
+            if (isInitialEraLoad) {
+                // First load — apply directly without cloud transition
+                isInitialEraLoad = false;
+                animateCameraToEra(era, camera, scene);
+                const visibleCount = updateSiteVisibility(era.id, siteClickBoxes, scene);
+                showInfoCard(era, visibleCount);
+                return;
+            }
+
+            // Subsequent era changes — use cloud cover transition
+            triggerCloudTransition(() => {
+                // These run while the map is hidden under clouds
+                animateCameraToEra(era, camera, scene);
+                const visibleCount = updateSiteVisibility(era.id, siteClickBoxes, scene);
+                showInfoCard(era, visibleCount);
+            });
+
+            // Aoi introduces the era the visitor just switched to (and listens for questions).
+            aiGuide?.describeEra(era);
+        },
+    });
+
+    // ── Performance: freeze static resources ─────────────────────────────
+    // The Iraq model and its materials don't change after setup.
+    // Freezing tells BabylonJS to skip per-frame world-matrix and
+    // material re-evaluation for these objects.
+    scene.blockMaterialDirtyMechanism = true;
+    scene.materials.forEach(mat => mat.freeze());
+    iraqModel.meshes.forEach(mesh => mesh.freezeWorldMatrix());
 
     return scene;
 };
@@ -1957,9 +2773,16 @@ const startGame = async (nickname: string) => {
         selectedSite?.worldPlayerSpawnPosition,
         selectedSite?.worldPlayerRotation
     );
+    if (aiGuide) aiGuide.site = selectedSite;
 };
 
 registerBuiltInLoaders();
+
+// Mount the AI tour guide (Aoi). Persists across the map and site scenes.
+aiGuide = document.createElement("ai-guide") as AiGuide;
+document.body.appendChild(aiGuide);
+aiGuide.site = selectedSite;
+
 if (LOAD_SITE_ON_START === null) {
     activeScene = await createMapScene();
 } else {
@@ -2021,6 +2844,7 @@ window.addEventListener("keydown", async (e) => {
 });
 
 engine.runRenderLoop(function () {
+    if (document.hidden) return; // Don't render when tab is not visible
     activeScene?.render();
     if (fpsDisplay) {
         fpsDisplay.textContent = `FPS: ${engine.getFps().toFixed(0)}`;

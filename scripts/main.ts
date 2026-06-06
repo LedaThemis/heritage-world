@@ -1,11 +1,6 @@
 // TODO: Side panel: Implement "see more" instead of scrollbar
 // TODO: Make side panel a grid
-import "./ui/components/website-header";
-import "./ui/components/info-panel";
-import "./ui/components/side-panel";
-import "./ui/components/site-info-panel";
-import "./ui/components/ai-guide";
-import type { AiGuide } from "./ui/components/ai-guide";
+
 
 import {
     Engine,
@@ -37,7 +32,14 @@ import {
 } from "@babylonjs/core";
 import { Client, getStateCallbacks, Room } from "colyseus.js";
 import { registerBuiltInLoaders } from "@babylonjs/loaders/dynamic";
+import { createTimelinePanel, destroyTimeline } from "./timeline/timelinePanel";
+import { showInfoCard } from "./timeline/timelineInfoCard";
+import { animateCameraToEra, updateSiteVisibility } from "./timeline/timelineAnimations";
+import { SITE_ERA_MAP, HISTORICAL_ERAS } from "./timeline/timelineData";
+import { initCloudTransition, triggerCloudTransition, disposeCloudTransition } from "./timeline/cloudTransition";
 import type { PlayerRoomType, HeritageSite } from "./types";
+import "./ui/components/ai-guide";
+import type { AiGuide } from "./ui/components/ai-guide";
 
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement | null;
 
@@ -223,6 +225,7 @@ const SITES: HeritageSite[] = [
         position: new Vector3(-15, 1, 15),
         description: "A historic collection showcasing traditional architecture and cultural heritage of the region.",
         thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
+        modelPath: "./assets/models/markers/AL-TAHIRA COLECTION.glb",
         worldModelPath: "./assets/models/al-tahira-world.glb",
         worldModelScaling: new Vector3(2, 2, 2),
         websiteUrl: "https://alqaba.com/al-tahira-church",
@@ -236,6 +239,7 @@ const SITES: HeritageSite[] = [
         position: new Vector3(-12, 1, 11),
         description: "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
         thumbnailPath: "./assets/sites/mosul.webp",
+        modelPath: "./assets/models/markers/MANART AL-HADB'A.glb",
         virtualWalkthroughUrl: "https://www.alqaba.com/old-town/walkthrough",
         websiteUrl: "https://www.alqaba.com/old-town",
     },
@@ -245,6 +249,7 @@ const SITES: HeritageSite[] = [
         position: new Vector3(-7.5, 1, 12.5),
         description: "One of the oldest continuously inhabited settlements in the world, a UNESCO World Heritage site.",
         thumbnailPath: "./assets/sites/erbil.png",
+        modelPath: "./assets/models/markers/ERBIL CITADEL.glb",
     },
     {
         id: "4",
@@ -252,6 +257,7 @@ const SITES: HeritageSite[] = [
         position: new Vector3(-1.5, 1, -1),
         description: "Home to priceless artifacts from Mesopotamian civilizations and Iraq's rich cultural history.",
         thumbnailPath: "./assets/sites/baghdad-museum.webp",
+        modelPath: "./assets/models/markers/THE IRAQI MUSEUM GATE.glb",
         sketchfabUrl: "https://sketchfab.com/HusseinYaseen/collections/iraqi-museum-b2f69baa92d84b50a90711d5db7d7f18",
     },
     {
@@ -260,6 +266,7 @@ const SITES: HeritageSite[] = [
         position: new Vector3(0, 1, -15),
         description: "Ancient Sumerian city-state, birthplace of writing and one of the world's first great cities.",
         thumbnailPath: "./assets/sites/uruk.jpg",
+        modelPath: "./assets/models/markers/URUK CITY RUIN.glb",
         sketchfabUrl: "https://sketchfab.com/HusseinYaseen/collections/uruk-city-0281a1d074b74daf937ccd853b9ec4fc",
     },
     {
@@ -274,6 +281,70 @@ const SITES: HeritageSite[] = [
         sketchfabUrl:
             "https://sketchfab.com/HusseinYaseen/collections/al-chibayish-marshes-b57822cc6dee4a698669e1e08c1e1f4b",
     },
+    {
+        id: "7",
+        name: "Al-Ukhaidir Fortress",
+        position: new Vector3(-3, 1, -6),
+        description: "An impressive Abbasid fortress in the desert south of Karbala.",
+        thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
+        modelPath: "./assets/models/markers/7SN AL-AKIDER.glb",
+    },
+    {
+        id: "8",
+        name: "Walls of Mosul",
+        position: new Vector3(-13, 1, 12),
+        description: "The ancient defensive walls surrounding the historic city of Mosul.",
+        thumbnailPath: "./assets/sites/mosul.webp",
+        modelPath: "./assets/models/markers/ASWAR MOSUL.glb",
+    },
+    {
+        id: "9",
+        name: "Hatra Temple",
+        position: new Vector3(-10, 1, 6),
+        description: "An ancient city in the Nineveh Governorate and a UNESCO World Heritage site.",
+        thumbnailPath: "./assets/sites/mosul.webp",
+        modelPath: "./assets/models/markers/HATTAR TEMPLE.glb",
+    },
+    {
+        id: "10",
+        name: "Babylon",
+        position: new Vector3(-1.5, 1, -3),
+        description: "One of the most famous cities of antiquity, known for its impressive walls and the Lion of Babylon.",
+        thumbnailPath: "./assets/sites/baghdad-museum.webp",
+        modelPath: "./assets/models/markers/LION OF BABYLON.glb",
+    },
+    {
+        id: "11",
+        name: "Malwiya Minaret",
+        position: new Vector3(-3, 1, 4),
+        description: "The iconic spiraling cone minaret of the Great Mosque of Samarra.",
+        thumbnailPath: "./assets/sites/baghdad-museum.webp",
+        modelPath: "./assets/models/markers/MALWIAT SAMARA.glb",
+    },
+    {
+        id: "12",
+        name: "Anah Minaret",
+        position: new Vector3(-8, 1, 5),
+        description: "An ancient minaret representing the historic town of Anah on the Euphrates.",
+        thumbnailPath: "./assets/sites/mosul.webp",
+        modelPath: "./assets/models/markers/MANART A'ANA.glb",
+    },
+    {
+        id: "13",
+        name: "Ur Ziggurat",
+        position: new Vector3(2, 1, -12),
+        description: "A Neo-Sumerian ziggurat in the ancient city of Ur near Nasiriyah.",
+        thumbnailPath: "./assets/sites/uruk.jpg",
+        modelPath: "./assets/models/markers/OUR ZAQURAT.glb",
+    },
+    {
+        id: "14",
+        name: "Taq Kasra",
+        position: new Vector3(-1, 1, -2),
+        description: "The magnificent vault of the palace of the Sasanian kings at Ctesiphon.",
+        thumbnailPath: "./assets/sites/baghdad-museum.webp",
+        modelPath: "./assets/models/markers/TUQ KISRA.glb",
+    },
 ];
 
 let allowedEmotes: string[] = [];
@@ -285,6 +356,9 @@ const generateFriendlyName = (): string => {
 };
 
 const engine = new Engine(canvas, true);
+// Cap rendering resolution on high-DPI displays to reduce fill rate
+const maxPixelRatio = Math.min(window.devicePixelRatio, 1.5);
+engine.setHardwareScalingLevel(window.devicePixelRatio / maxPixelRatio);
 let activeScene: Scene | null = null;
 let selectedSite: HeritageSite | null = null;
 let aiGuide: AiGuide | null = null;
@@ -353,7 +427,7 @@ const createNameLabel = (name: string, scene: Scene) => {
     const mat = new StandardMaterial("nameplate-mat", scene);
     mat.diffuseTexture = texture;
     mat.emissiveColor = new Color3(1, 1, 1);
-    mat.backFaceCulling = false;
+    // backFaceCulling stays true (default) — billboard always faces camera
 
     plane.material = mat;
     return plane;
@@ -381,7 +455,7 @@ const createEmoteBubble = (emote: string, scene: Scene) => {
     const mat = new StandardMaterial("emote-mat", scene);
     mat.diffuseTexture = texture;
     mat.emissiveColor = new Color3(1, 1, 1);
-    mat.backFaceCulling = false;
+    // backFaceCulling stays true (default) — billboard always faces camera
     mat.useAlphaFromDiffuseTexture = true;
 
     plane.material = mat;
@@ -391,8 +465,8 @@ const createEmoteBubble = (emote: string, scene: Scene) => {
 const createBillboardLabel = (text: string, scene: Scene) => {
     // Calculate dimensions based on text length
     const textLength = text.length;
-    const textureWidth = Math.max(512, textLength * 80);
-    const textureHeight = 128;
+    const textureWidth = Math.max(256, textLength * 40);
+    const textureHeight = 64;
     const planeWidth = Math.max(4, textLength * 0.5);
     const planeHeight = 1;
 
@@ -408,12 +482,12 @@ const createBillboardLabel = (text: string, scene: Scene) => {
         false
     );
     texture.hasAlpha = true;
-    texture.drawText(text, null, null, "bold 128px Arial", "white", "transparent", true, true);
+    texture.drawText(text, null, null, "bold 64px Arial", "white", "transparent", true, true);
 
     const mat = new StandardMaterial(`map-label-mat-${text}`, scene);
     mat.diffuseTexture = texture;
     mat.emissiveColor = new Color3(1, 1, 1);
-    mat.backFaceCulling = false;
+    // backFaceCulling stays true (default) — billboard always faces camera
 
     plane.material = mat;
     return plane;
@@ -1413,7 +1487,7 @@ const createScene = async function (
     // Enable ambient occlusion
     const ssao = new SSAO2RenderingPipeline("ssao", scene, 1);
     ssao.radius = 1.5;
-    ssao.samples = 16;
+    ssao.samples = 8;
     scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("ssao", camera);
 
     let ground: AbstractMesh | TransformNode;
@@ -1513,23 +1587,6 @@ const createScene = async function (
         loadingScreen.updateProgress(100, "Complete!");
     }
 
-    // ---- Aoi (the on-screen 2D guide) travels with the player into the site ----
-    if (aiGuide) {
-        aiGuide.site = selectedSite;
-        aiGuide.greet(); // she welcomes you to this site, then listens hands-free
-    }
-    const onGuideKey = (e: KeyboardEvent) => {
-        if (e.repeat) return;
-        const k = e.key.toLowerCase();
-        if (k === "e") aiGuide?.greet();
-        else if (k === "v") aiGuide?.toggleListen();
-    };
-    window.addEventListener("keydown", onGuideKey);
-    scene.onDisposeObservable.add(() => {
-        aiGuide?.deactivate();
-        window.removeEventListener("keydown", onGuideKey);
-    });
-
     // Hide loading screen
     setTimeout(() => {
         loadingScreen.remove();
@@ -1550,6 +1607,23 @@ const createScene = async function (
                 );
             }
         }
+    });
+
+    // ---- Aoi (the on-screen guide) travels with the player into the site ----
+    if (aiGuide) {
+        aiGuide.site = selectedSite;
+        aiGuide.greet(); // she welcomes you to this site, then listens hands-free
+    }
+    const onGuideKey = (e: KeyboardEvent) => {
+        if (e.repeat) return;
+        const k = e.key.toLowerCase();
+        if (k === "e") aiGuide?.greet();
+        else if (k === "v") aiGuide?.toggleListen();
+    };
+    window.addEventListener("keydown", onGuideKey);
+    scene.onDisposeObservable.add(() => {
+        aiGuide?.deactivate();
+        window.removeEventListener("keydown", onGuideKey);
     });
 
     return scene;
@@ -1578,7 +1652,8 @@ const createMapScene = async () => {
     // Enable ambient occlusion
     const ssao = new SSAO2RenderingPipeline("ssao", scene, 1);
     ssao.radius = 1.5;
-    ssao.samples = 16;
+    ssao.samples = 8;
+    ssao.textureSamples = 1; // No MSAA on the SSAO texture — unnecessary for a blur effect
     scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("ssao", camera);
 
     // Create container for left-side UI elements
@@ -1594,33 +1669,362 @@ const createMapScene = async () => {
     leftContainer.style.maxWidth = "390px";
     document.body.appendChild(leftContainer);
 
-    const websiteHeader = document.createElement("website-header");
+    // Create website header in top left
+    const websiteHeader = document.createElement("div");
+    websiteHeader.style.padding = "20px";
+    websiteHeader.style.background = "rgba(10, 8, 5, 0.88)";
+    websiteHeader.style.backdropFilter = "blur(12px)";
+    websiteHeader.style.webkitBackdropFilter = "blur(12px)";
+    websiteHeader.style.border = "1px solid rgba(201, 168, 76, 0.18)";
+    websiteHeader.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(201, 168, 76, 0.08) inset";
+    websiteHeader.style.borderRadius = "16px";
+    websiteHeader.style.color = "white";
+    websiteHeader.style.fontFamily = "sans-serif";
+    websiteHeader.style.pointerEvents = "none";
+    websiteHeader.style.willChange = "transform";
+    websiteHeader.style.transform = "translateZ(0)";
+
+    const mainTitle = document.createElement("h1");
+    mainTitle.textContent = "Heritage Iraq";
+    mainTitle.style.margin = "0";
+    mainTitle.style.fontSize = "32px";
+    mainTitle.style.fontWeight = "bold";
+    mainTitle.style.letterSpacing = "0.5px";
+    websiteHeader.appendChild(mainTitle);
+
+    const subtitle = document.createElement("p");
+    subtitle.textContent = "A 3D Interactive Heritage Experience";
+    subtitle.style.margin = "4px 0 0 0";
+    subtitle.style.fontSize = "14px";
+    subtitle.style.fontWeight = "300";
+    subtitle.style.opacity = "0.9";
+    subtitle.style.letterSpacing = "0.3px";
+    websiteHeader.appendChild(subtitle);
+
     leftContainer.appendChild(websiteHeader);
-    const infoPanel = document.createElement("info-panel");
+
+    // Create info panel (left side)
+    const infoPanel = document.createElement("div");
+    infoPanel.style.width = "350px";
+    infoPanel.style.maxHeight = "calc(100vh - 200px)";
+    infoPanel.style.overflowY = "auto";
+    infoPanel.style.background = "rgba(10, 8, 5, 0.88)";
+    infoPanel.style.backdropFilter = "blur(12px)";
+    infoPanel.style.webkitBackdropFilter = "blur(12px)";
+    infoPanel.style.border = "1px solid rgba(201, 168, 76, 0.18)";
+    infoPanel.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(201, 168, 76, 0.08) inset";
+    infoPanel.style.borderRadius = "16px";
+    infoPanel.style.padding = "20px";
+    infoPanel.style.color = "white";
+    infoPanel.style.fontFamily = "sans-serif";
+    infoPanel.style.willChange = "transform";
+    infoPanel.style.transform = "translateZ(0)";
     leftContainer.appendChild(infoPanel);
-    const sidePanel = document.createElement("side-panel");
-    leftContainer.appendChild(sidePanel);
-    const experienceContainer = document.createElement("site-info-panel");
-    experienceContainer.onStartExperience = async () => {
-        if (currentFocusedSite) {
-            selectedSite = SITES.find((s) => s.id === currentFocusedSite) || null;
 
-            // Clean up map scene UI
-            infoPanel.remove();
-            sidePanel.remove();
-            experienceContainer.remove();
+    // Info panel header
+    const infoPanelHeader = document.createElement("h2");
+    infoPanelHeader.textContent = "About";
+    infoPanelHeader.style.margin = "0 0 16px 0";
+    infoPanelHeader.style.fontSize = "24px";
+    infoPanelHeader.style.fontWeight = "bold";
+    infoPanel.appendChild(infoPanelHeader);
 
-            // Start game with randomly generated name
-            const nickname = generateFriendlyName();
-            await startGame(nickname);
+    // Info panel content
+    const infoContent = document.createElement("p");
+    infoContent.textContent =
+        "Explore Iraq's rich cultural heritage through this immersive 3D experience. Navigate through historic sites, ancient cities, and natural wonders that have shaped the cradle of civilization for millennia.";
+    infoContent.style.margin = "0 0 20px 0";
+    infoContent.style.fontSize = "14px";
+    infoContent.style.lineHeight = "1.6";
+    infoContent.style.color = "rgba(255, 255, 255, 0.9)";
+    infoPanel.appendChild(infoContent);
+
+    const creditsLink = document.createElement("a");
+    creditsLink.textContent = "Learn more →";
+    creditsLink.href = "/credits.html";
+    creditsLink.style.color = "#60a5fa";
+    creditsLink.style.fontSize = "13px";
+    creditsLink.style.textDecoration = "none";
+    creditsLink.style.fontWeight = "500";
+    creditsLink.style.transition = "color 0.2s ease";
+    creditsLink.style.pointerEvents = "auto";
+    creditsLink.addEventListener("mouseenter", () => {
+        creditsLink.style.color = "#93c5fd";
+    });
+    creditsLink.addEventListener("mouseleave", () => {
+        creditsLink.style.color = "#60a5fa";
+    });
+    infoPanel.appendChild(creditsLink);
+
+    // Create header with tip
+    const headerTip = document.createElement("div");
+    headerTip.textContent = "Tip: click on a site for more details";
+    headerTip.style.position = "fixed";
+    headerTip.style.top = "20px";
+    headerTip.style.left = "50%";
+    headerTip.style.transform = "translateX(-50%)";
+    headerTip.style.padding = "12px 24px";
+    headerTip.style.fontSize = "18px";
+    headerTip.style.fontWeight = "500";
+    headerTip.style.color = "white";
+    headerTip.style.background = "rgba(0, 0, 0, 0.5)";
+    headerTip.style.borderRadius = "8px";
+    headerTip.style.zIndex = "100";
+    headerTip.style.pointerEvents = "none";
+    headerTip.style.opacity = "0"; // TODO: Do we show or hide it? It makes the site "cluttery"
+    document.body.appendChild(headerTip);
+
+    // Create side panel
+    const sidePanel = document.createElement("div");
+    sidePanel.style.width = "350px";
+    sidePanel.style.maxHeight = "calc(60vh - 40px - 40px)";
+    sidePanel.style.overflowY = "auto";
+    sidePanel.style.background = "rgba(10, 8, 5, 0.88)";
+    sidePanel.style.backdropFilter = "blur(12px)";
+    sidePanel.style.webkitBackdropFilter = "blur(12px)";
+    sidePanel.style.border = "1px solid rgba(201, 168, 76, 0.18)";
+    sidePanel.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(201, 168, 76, 0.08) inset";
+    sidePanel.style.borderRadius = "16px";
+    sidePanel.style.padding = "20px";
+    sidePanel.style.color = "white";
+    sidePanel.style.fontFamily = "sans-serif";
+    sidePanel.style.willChange = "transform";
+    sidePanel.style.transform = "translateZ(0)";
+
+    // Custom scrollbar styling
+    const style = document.createElement("style");
+    style.textContent = `
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
         }
-    };
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+    `;
+    document.head.appendChild(style);
+    sidePanel.classList.add("custom-scrollbar");
+
+    leftContainer.appendChild(sidePanel);
+    
+
+    // Panel header
+    const panelHeader = document.createElement("h2");
+    panelHeader.textContent = "Heritage Sites";
+    panelHeader.style.position = "relative";
+    panelHeader.style.top = "0";
+    panelHeader.style.margin = "0 0 16px 0";
+    panelHeader.style.fontSize = "24px";
+    panelHeader.style.fontWeight = "bold";
+    sidePanel.appendChild(panelHeader);
+
+    // Create right panel for site details (hidden by default)
+    const experienceContainer = document.createElement("div");
+    experienceContainer.style.position = "fixed";
+    experienceContainer.style.top = "20px";
+    experienceContainer.style.right = "-400px"; // Start off-screen
+    experienceContainer.style.width = "360px";
+    experienceContainer.style.maxHeight = "calc(100vh - 40px)";
+    experienceContainer.style.overflowY = "auto";
+    experienceContainer.style.background = "rgba(10, 8, 5, 0.88)";
+    experienceContainer.style.backdropFilter = "blur(12px)";
+    experienceContainer.style.webkitBackdropFilter = "blur(12px)";
+    experienceContainer.style.border = "1px solid rgba(201, 168, 76, 0.18)";
+    experienceContainer.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(201, 168, 76, 0.08) inset";
+    experienceContainer.style.borderRadius = "16px";
+    experienceContainer.style.padding = "24px";
+    experienceContainer.style.zIndex = "100";
+    experienceContainer.style.display = "flex";
+    experienceContainer.style.flexDirection = "column";
+    experienceContainer.style.gap = "20px";
+    experienceContainer.style.transition = "right 0.4s cubic-bezier(0.4, 0, 0.2, 1)";
+    experienceContainer.style.fontFamily = "sans-serif";
+    experienceContainer.style.willChange = "transform";
+    experienceContainer.style.transform = "translateZ(0)";
+    experienceContainer.classList.add("custom-scrollbar");
     document.body.appendChild(experienceContainer);
+
+    // Create site title
+    const siteTitle = document.createElement("h2");
+    siteTitle.style.margin = "0";
+    siteTitle.style.fontSize = "24px";
+    siteTitle.style.fontWeight = "bold";
+    siteTitle.style.color = "white";
+    experienceContainer.appendChild(siteTitle);
+
+    // Create description text
+    const descriptionBox = document.createElement("p");
+    descriptionBox.style.margin = "0";
+    descriptionBox.style.fontSize = "15px";
+    descriptionBox.style.lineHeight = "1.6";
+    descriptionBox.style.color = "rgba(255, 255, 255, 0.9)";
+    experienceContainer.appendChild(descriptionBox);
+
+    // Create features section
+    const featuresSection = document.createElement("div");
+    featuresSection.style.display = "flex";
+    featuresSection.style.flexDirection = "column";
+    featuresSection.style.gap = "12px";
+    featuresSection.style.marginTop = "8px";
+    experienceContainer.appendChild(featuresSection);
+
+    const featuresTitle = document.createElement("h3");
+    featuresTitle.textContent = "Available Features";
+    featuresTitle.style.margin = "0 0 8px 0";
+    featuresTitle.style.fontSize = "16px";
+    featuresTitle.style.fontWeight = "600";
+    featuresTitle.style.color = "white";
+    featuresSection.appendChild(featuresTitle);
+
+    const createFeatureItem = (label: string, available: boolean, url?: string) => {
+        const item = document.createElement("div");
+        item.style.display = "flex";
+        item.style.flexDirection = "column";
+        item.style.gap = "8px";
+        item.style.fontSize = "14px";
+        item.style.color = available ? "rgba(255, 255, 255, 0.9)" : "rgba(255, 255, 255, 0.4)";
+        item.style.padding = "12px";
+        item.style.background = "rgba(255, 255, 255, 0.05)";
+        item.style.borderRadius = "8px";
+
+        const header = document.createElement("div");
+        header.style.display = "flex";
+        header.style.alignItems = "center";
+        header.style.gap = "10px";
+
+        const checkmark = document.createElement("span");
+        checkmark.textContent = available ? "✓" : "✗";
+        checkmark.style.fontSize = "18px";
+        checkmark.style.fontWeight = "bold";
+        checkmark.style.color = available ? "#10b981" : "rgba(255, 255, 255, 0.3)";
+        header.appendChild(checkmark);
+
+        const text = document.createElement("span");
+        text.textContent = label;
+        text.style.fontWeight = "600";
+        header.appendChild(text);
+
+        item.appendChild(header);
+
+        if (url || label.includes("Interactive")) {
+            const linkText = document.createElement("p");
+            linkText.style.margin = "0 0 4px 28px";
+            linkText.style.fontSize = "13px";
+            linkText.style.color = "rgba(255, 255, 255, 0.7)";
+
+            if (label.includes("Sketchfab")) {
+                linkText.textContent = "You can view the Sketchfab collection at:";
+            } else if (label.includes("Website")) {
+                linkText.textContent = "You can visit the external website at:";
+            } else if (label.includes("Virtual Walkthrough")) {
+                linkText.textContent = "You can experience the virtual walkthrough at:";
+            } else if (label.includes("Interactive")) {
+                linkText.textContent =
+                    'You can immerse yourself in the interactive experience by clicking "Start Experience" below.';
+            }
+            item.appendChild(linkText);
+
+            if (url) {
+                const link = document.createElement("a");
+                link.href = url;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                link.textContent = url;
+                link.style.color = "#60a5fa";
+                link.style.fontSize = "13px";
+                link.style.textDecoration = "none";
+                link.style.marginLeft = "28px";
+                link.style.wordBreak = "break-all";
+                link.style.transition = "color 0.2s ease";
+                link.addEventListener("mouseenter", () => {
+                    link.style.color = "#93c5fd";
+                });
+                link.addEventListener("mouseleave", () => {
+                    link.style.color = "#60a5fa";
+                });
+                item.appendChild(link);
+            }
+        }
+
+        return item;
+    };
+
+    const websiteFeature = createFeatureItem("External Website", false);
+    const virtualWalkthroughFeature = createFeatureItem("Virtual Walkthrough", false);
+    const sketchfabFeature = createFeatureItem("Sketchfab 3D Collection", false);
+    const interactiveFeature = createFeatureItem("Interactive Experience", false);
+
+    featuresSection.appendChild(websiteFeature);
+    featuresSection.appendChild(virtualWalkthroughFeature);
+    featuresSection.appendChild(sketchfabFeature);
+    featuresSection.appendChild(interactiveFeature);
+
+    // Create Start Experience button (only visible if interactive experience exists)
+    const startExperienceBtn = document.createElement("button");
+    startExperienceBtn.textContent = "Start Experience";
+    startExperienceBtn.style.width = "100%";
+    startExperienceBtn.style.padding = "12px 32px";
+    startExperienceBtn.style.fontSize = "16px";
+    startExperienceBtn.style.fontWeight = "bold";
+    startExperienceBtn.style.background = "#3b82f6";
+    startExperienceBtn.style.color = "white";
+    startExperienceBtn.style.border = "none";
+    startExperienceBtn.style.borderRadius = "8px";
+    startExperienceBtn.style.cursor = "pointer";
+    startExperienceBtn.style.transition = "all 0.2s ease";
+    startExperienceBtn.style.marginTop = "8px";
+    startExperienceBtn.addEventListener("mouseenter", () => {
+        startExperienceBtn.style.background = "#2563eb";
+    });
+    startExperienceBtn.addEventListener("mouseleave", () => {
+        startExperienceBtn.style.background = "#3b82f6";
+    });
+    experienceContainer.appendChild(startExperienceBtn);
 
     let currentFocusedSite: string | null = null;
 
+    // Update panel with site data
     const updatePanelWithSite = (site: HeritageSite) => {
-        experienceContainer.site = site;
+        siteTitle.textContent = site.name;
+        descriptionBox.textContent = site.description;
+
+        // Clear existing features
+        while (featuresSection.children.length > 1) {
+            featuresSection.removeChild(featuresSection.lastChild!);
+        }
+
+        // Add only available features
+        const hasWebsite = !!site.websiteUrl;
+        const hasVirtualWalkthrough = !!site.virtualWalkthroughUrl;
+        const hasSketchfab = !!site.sketchfabUrl;
+        const hasInteractive = !!site.worldModelPath;
+
+        if (hasWebsite) {
+            featuresSection.appendChild(createFeatureItem("External Website", true, site.websiteUrl));
+        }
+        if (hasVirtualWalkthrough) {
+            featuresSection.appendChild(createFeatureItem("Virtual Walkthrough", true, site.virtualWalkthroughUrl));
+        }
+        if (hasSketchfab) {
+            featuresSection.appendChild(createFeatureItem("Sketchfab 3D Collection", true, site.sketchfabUrl));
+        }
+        if (hasInteractive) {
+            featuresSection.appendChild(createFeatureItem("Interactive Experience", true));
+        }
+
+        // Show/hide features section if no features available
+        featuresSection.style.display =
+            hasWebsite || hasVirtualWalkthrough || hasSketchfab || hasInteractive ? "flex" : "none";
+
+        // Show/hide start button based on interactive availability
+        startExperienceBtn.style.display = hasInteractive ? "block" : "none";
     };
 
     // Reusable function to animate camera focus
@@ -1700,7 +2104,25 @@ const createMapScene = async () => {
         }
     };
 
-    // startExperienceBtn.addEventListener("click", );
+    startExperienceBtn.addEventListener("click", async () => {
+        if (currentFocusedSite) {
+            // Store the selected site
+            const site = SITES.find((s) => s.id === currentFocusedSite);
+            selectedSite = site || null;
+
+            // Clean up map scene UI
+            infoPanel.remove();
+            sidePanel.remove();
+            headerTip.remove();
+            experienceContainer.remove();
+            destroyTimeline();
+            disposeCloudTransition();
+
+            // Start game with randomly generated name
+            const nickname = generateFriendlyName();
+            await startGame(nickname);
+        }
+    });
 
     // ESC key handler to remove focus
     window.addEventListener("keydown", (e) => {
@@ -1739,7 +2161,7 @@ const createMapScene = async () => {
     });
 
     // Create cylindrical fog wall particle system around the perimeter
-    const fogWallParticleSystem = new GPUParticleSystem("fogWallParticles", { capacity: 5000 }, scene);
+    const fogWallParticleSystem = new GPUParticleSystem("fogWallParticles", { capacity: 2000 }, scene);
 
     // Use cylinder particle emitter type for cylindrical fog wall
     fogWallParticleSystem.particleEmitterType = new CylinderParticleEmitter(30, 30, 2.5);
@@ -1754,8 +2176,8 @@ const createMapScene = async () => {
     fogWallParticleSystem.colorDead = new Color4(0.85, 0.85, 0.85, 0.1);
 
     // Size configuration - larger particles for wall effect
-    fogWallParticleSystem.minSize = 5;
-    fogWallParticleSystem.maxSize = 8 * 2;
+    fogWallParticleSystem.minSize = 8;
+    fogWallParticleSystem.maxSize = 20;
 
     // Lifetime - persistent fog
     fogWallParticleSystem.minLifeTime = Number.MAX_SAFE_INTEGER;
@@ -1779,6 +2201,11 @@ const createMapScene = async () => {
 
     // Start the fog wall
     fogWallParticleSystem.start();
+
+    // Initialize cloud transition system (uses same smoke.png texture)
+    initCloudTransition(scene, fogWallParticleSystem);
+
+    
 
     // Populate side panel with sites
     SITES.forEach((site) => {
@@ -1862,12 +2289,18 @@ const createMapScene = async () => {
         sidePanel.appendChild(siteCard);
     });
 
+    // Track site meshes for timeline visibility control
+    const siteClickBoxes = new Map<string, AbstractMesh[]>();
+
     SITES.forEach(async (site) => {
         // Create invisible clickable box for all sites (for detecting clicks)
         const clickBox = MeshBuilder.CreateBox(`site-${site.id}`, { size: 2 }, scene);
         clickBox.position.copyFrom(site.position);
         clickBox.isPickable = true;
         clickBox.visibility = 0; // Invisible but still pickable
+
+        // Register this site's meshes for timeline visibility
+        const siteMeshes: AbstractMesh[] = [];
 
         if (site.modelPath) {
             // Load 3D model if modelPath is provided
@@ -1895,6 +2328,7 @@ const createMapScene = async () => {
                     mesh.parent = siteContainer;
                 }
                 mesh.isPickable = false; // Don't pick individual model meshes
+                siteMeshes.push(mesh);
             });
         } else {
             // Create visible material for box if no model is provided
@@ -1902,19 +2336,26 @@ const createMapScene = async () => {
             boxMat.diffuseColor = new Color3(246 / 255, 215 / 255, 176 / 255);
             clickBox.material = boxMat;
             clickBox.visibility = 1; // Make visible
+            siteMeshes.push(clickBox);
         }
 
         // Create and position label above the site
         const label = createBillboardLabel(site.name, scene);
         label.position.copyFrom(site.position);
         label.position.y += 3;
+        siteMeshes.push(label);
+
+        // Register for timeline visibility
+        siteClickBoxes.set(site.name, siteMeshes);
     });
+
+    // Only ray-test against site markers, skip the Iraq model's many sub-meshes
+    scene.pointerDownPredicate = (mesh) => mesh.isPickable && mesh.name.startsWith("site-");
 
     scene.onPointerObservable.add((pointerInfo) => {
         if (pointerInfo.type !== PointerEventTypes.POINTERPICK) return;
-        const picked = pointerInfo.pickInfo?.pickedMesh;
-        if (pointerInfo.pickInfo?.hit && picked?.name.startsWith("site-")) {
-            const clickedMesh = picked;
+        if (pointerInfo.pickInfo?.hit && pointerInfo.pickInfo.pickedMesh?.name.startsWith("site-")) {
+            const clickedMesh = pointerInfo.pickInfo.pickedMesh;
             const target = clickedMesh.name.replace("site-", "");
 
             experienceContainer.style.right = "-400px"; // Animate out
@@ -1926,7 +2367,7 @@ const createMapScene = async () => {
                 // Populate panel with site data
                 updatePanelWithSite(siteData);
 
-                // Have Aoi talk about this site (and listen for follow-up questions).
+                // Aoi talks about the clicked site (and listens for follow-up questions)
                 if (aiGuide) {
                     aiGuide.site = siteData;
                     aiGuide.greet();
@@ -1975,6 +2416,39 @@ const createMapScene = async () => {
     // Turn Aoi's mic off when leaving the map (e.g. entering a site).
     scene.onDisposeObservable.add(() => aiGuide?.deactivate());
 
+    // --- Mount Timeline Navigation ---
+    // Track whether this is the initial load (skip transition for first era)
+    let isInitialEraLoad = true;
+
+    createTimelinePanel({
+        onEraChange: (era, _index) => {
+            if (isInitialEraLoad) {
+                // First load — apply directly without cloud transition
+                isInitialEraLoad = false;
+                animateCameraToEra(era, camera, scene);
+                const visibleCount = updateSiteVisibility(era.id, siteClickBoxes, scene);
+                showInfoCard(era, visibleCount);
+                return;
+            }
+
+            // Subsequent era changes — use cloud cover transition
+            triggerCloudTransition(() => {
+                // These run while the map is hidden under clouds
+                animateCameraToEra(era, camera, scene);
+                const visibleCount = updateSiteVisibility(era.id, siteClickBoxes, scene);
+                showInfoCard(era, visibleCount);
+            });
+        },
+    });
+
+    // ── Performance: freeze static resources ─────────────────────────────
+    // The Iraq model and its materials don't change after setup.
+    // Freezing tells BabylonJS to skip per-frame world-matrix and
+    // material re-evaluation for these objects.
+    scene.blockMaterialDirtyMechanism = true;
+    scene.materials.forEach(mat => mat.freeze());
+    iraqModel.meshes.forEach(mesh => mesh.freezeWorldMatrix());
+
     return scene;
 };
 
@@ -1993,7 +2467,7 @@ const startGame = async (nickname: string) => {
 
 registerBuiltInLoaders();
 
-// Mount the AI tour guide (text + voice). Persists across the map and site scenes.
+// Mount the AI tour guide (Aoi). Persists across the map and site scenes.
 aiGuide = document.createElement("ai-guide") as AiGuide;
 document.body.appendChild(aiGuide);
 aiGuide.site = selectedSite;
@@ -2023,7 +2497,6 @@ if (LOAD_SITE_ON_START === null) {
             selectedSite.worldPlayerSpawnPosition,
             selectedSite.worldPlayerRotation
         );
-        if (aiGuide) aiGuide.site = selectedSite;
     }
 }
 
@@ -2060,6 +2533,7 @@ window.addEventListener("keydown", async (e) => {
 });
 
 engine.runRenderLoop(function () {
+    if (document.hidden) return; // Don't render when tab is not visible
     activeScene?.render();
     if (fpsDisplay) {
         fpsDisplay.textContent = `FPS: ${engine.getFps().toFixed(0)}`;

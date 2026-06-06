@@ -20,6 +20,7 @@ export interface HeritageSite {
     description: string;
     thumbnailPath: string;
     modelPath?: string;
+    markerScale?: number;
     worldModelPath?: string;
     worldModelScaling?: Vector3;
     worldModelRotation?: Vector3;

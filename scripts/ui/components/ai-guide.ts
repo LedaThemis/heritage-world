@@ -30,10 +30,25 @@ export class AiGuide extends LitElement {
     private recognition: any = null;
     private recognizing = false;
     private clearTimer: number | null = null;
+    private voice: SpeechSynthesisVoice | null = null;
+    // Cloned-voice TTS (XTTS-v2 service on the Mac). null = untested, false = unreachable
+    // (we then fall back to the browser voice and stop retrying for the session).
+    private currentAudio: HTMLAudioElement | null = null;
+    private ttsOk: boolean | null = null;
 
-    // Professional rig: if a Rive model (public/assets/aoi/aoi.riv) is present, we play it and drive
-    // its "State" machine by her status. Until then we fall back to the layered PNG rig, then emoji.
-    @state() private rigFailed = false;
+    // If a Rive model (public/assets/aoi/aoi.riv) is present we play it and drive its "State" machine
+    // by her status. Otherwise we show a hand-drawn pose image per state (idle/talk/think/listen),
+    // animated with smooth CSS. Falls back to the emoji if the pose images are missing.
+    @state() private poseFailed = false;
+    private readonly poses: Record<string, string> = {
+        idle: "/assets/aoi/idle.png",
+        listening: "/assets/aoi/listening.png",
+        thinking: "/assets/aoi/thinking.png",
+        speaking: "/assets/aoi/talking.png",
+    };
+    private currentPose(): string {
+        return this.poses[this.status] || this.poses.idle;
+    }
     @state() private riveReady = false;
     private rive: any = null;
     private riveStateInput: any = null;
@@ -135,14 +150,14 @@ export class AiGuide extends LitElement {
             gap: 6px;
         }
         .avatar {
-            height: min(300px, 70vh);
+            height: min(230px, 52vh);
             width: auto;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 56px;
-            filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
-            animation: bob 3.2s ease-in-out infinite;
+            filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.55));
+            animation: bob 3.4s ease-in-out infinite;
         }
         canvas.rive {
             height: 100%;
@@ -153,43 +168,23 @@ export class AiGuide extends LitElement {
         canvas.rive[hidden] {
             display: none;
         }
-        .rig {
-            position: relative;
+        .pose {
             height: 100%;
-            aspect-ratio: 360 / 587;
-        }
-        .layer {
-            position: absolute;
-            inset: 0;
-            height: 100%;
-            width: 100%;
+            width: auto;
             object-fit: contain;
-        }
-        .layer.base {
-            transform-origin: 50% 100%;
-            animation: breathe 3.6s ease-in-out infinite;
-        }
-        .layer.arm {
-            transform-origin: 80% 27%;
-            animation: armsway 3.6s ease-in-out infinite;
-        }
-        .avatar.speaking .layer.arm {
-            animation: wave 0.95s ease-in-out infinite;
-        }
-        .avatar.speaking .layer.base {
-            animation: breathe 2.2s ease-in-out infinite;
+            display: block;
         }
         .avatar-wrap:hover .avatar {
-            transform: scale(1.04);
+            transform: scale(1.03);
         }
         .avatar.listening {
-            animation: bob 3.2s ease-in-out infinite, glow 1.2s infinite;
+            animation: bob 3.2s ease-in-out infinite, glow 1.3s infinite;
         }
         .avatar.speaking {
-            animation: bob 2.4s ease-in-out infinite;
+            animation: talk 1.5s ease-in-out infinite;
         }
         .avatar.thinking {
-            animation: tilt 1.4s ease-in-out infinite;
+            animation: tilt 1.6s ease-in-out infinite;
         }
         .tag {
             font-size: 11px;
@@ -237,42 +232,13 @@ export class AiGuide extends LitElement {
                 filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 9px rgba(239, 68, 68, 0.95));
             }
         }
-        @keyframes breathe {
+        @keyframes talk {
             0%,
             100% {
-                transform: scaleY(1) translateY(0);
+                transform: translateY(0) rotate(-1.5deg);
             }
             50% {
-                transform: scaleY(1.018) translateY(-1px);
-            }
-        }
-        @keyframes armsway {
-            0%,
-            100% {
-                transform: rotate(-2deg);
-            }
-            50% {
-                transform: rotate(3deg);
-            }
-        }
-        @keyframes wave {
-            0% {
-                transform: rotate(-6deg);
-            }
-            20% {
-                transform: rotate(14deg);
-            }
-            40% {
-                transform: rotate(-2deg);
-            }
-            60% {
-                transform: rotate(16deg);
-            }
-            80% {
-                transform: rotate(2deg);
-            }
-            100% {
-                transform: rotate(-6deg);
+                transform: translateY(-6px) rotate(1.5deg);
             }
         }
         @media (max-width: 520px) {
@@ -280,8 +246,7 @@ export class AiGuide extends LitElement {
                 max-width: 180px;
             }
             .avatar {
-                width: 64px;
-                height: 64px;
+                height: min(240px, 52vh);
                 font-size: 34px;
             }
         }
@@ -290,6 +255,18 @@ export class AiGuide extends LitElement {
     connectedCallback(): void {
         super.connectedCallback();
         this.setupRecognition();
+        this.loadVoice();
+        this.pingTts();
+    }
+
+    /** Probe the cloned-voice service once so the first reply isn't delayed by a timeout. */
+    private async pingTts(): Promise<void> {
+        try {
+            const res = await fetch(`${this.ttsBase}/health`, { method: "GET" });
+            this.ttsOk = res.ok;
+        } catch {
+            this.ttsOk = false;
+        }
     }
 
     disconnectedCallback(): void {
@@ -380,6 +357,25 @@ export class AiGuide extends LitElement {
         );
     }
 
+    /** The visitor moved the timeline to a different historical era — Aoi introduces it. */
+    async describeEra(era: { id?: string; name?: string; description?: string }): Promise<void> {
+        if (this.status === "thinking") return;
+        this.site =
+            era && (era.name || era.description)
+                ? ({
+                      id: era.id || "era",
+                      name: era.name ? `${era.name} era` : "this era",
+                      description: era.description,
+                  } as unknown as HeritageSite)
+                : null;
+        this.history = [];
+        this.handsFree = true;
+        await this.ask(
+            `(The visitor just moved the timeline to the ${era?.name || "selected"} era of Iraq's history. Warmly introduce this era in 2 short sentences and what they can explore from it, then invite them to ask you anything.)`,
+            { silentUser: true }
+        );
+    }
+
     /** Toggle the hands-free mic on/off (mute). */
     toggleListen(): void {
         if (!this.recognition) {
@@ -394,6 +390,7 @@ export class AiGuide extends LitElement {
         } else {
             this.handsFree = true;
             window.speechSynthesis?.cancel();
+            this.stopCurrentAudio();
             this.startRec();
         }
     }
@@ -407,6 +404,7 @@ export class AiGuide extends LitElement {
         } catch {
             /* ignore */
         }
+        this.stopCurrentAudio();
         this.status = "idle";
         this.caption = "";
     }
@@ -526,30 +524,139 @@ export class AiGuide extends LitElement {
         }
     }
 
+    /**
+     * Pick the most natural-sounding English voice the browser offers and cache it.
+     * The default SpeechSynthesis voice is usually the robotic OS fallback; modern
+     * browsers ship far better neural voices ("Google", "Natural", Apple "Samantha"),
+     * we just have to ask for one. Voices load async, so we also listen for the event.
+     */
+    private loadVoice(): void {
+        if (!("speechSynthesis" in window)) return;
+        const pick = () => {
+            const v = this.pickVoice(window.speechSynthesis.getVoices());
+            if (v) this.voice = v;
+        };
+        pick();
+        // getVoices() is often empty on first call until this fires.
+        window.speechSynthesis.addEventListener("voiceschanged", pick, { once: false });
+    }
+
+    private pickVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
+        const en = voices.filter((v) => v.lang?.toLowerCase().startsWith("en"));
+        if (!en.length) return null;
+        // Prefer, in order: explicitly "natural"/"neural", Google, well-known good
+        // female voices, then any local English voice, then any English voice.
+        const score = (v: SpeechSynthesisVoice): number => {
+            const n = v.name.toLowerCase();
+            let s = 0;
+            if (n.includes("natural") || n.includes("neural")) s += 100;
+            if (n.includes("google")) s += 50;
+            if (/(samantha|jenny|aria|ava|zira|libby|sonia)/.test(n)) s += 40;
+            if (n.includes("female")) s += 10;
+            if (v.localService) s += 5;
+            return s;
+        };
+        return en.slice().sort((a, b) => score(b) - score(a))[0] ?? null;
+    }
+
+    /** Base URL of the cloned-voice (XTTS-v2) service. Override with VITE_TTS_API_URL. */
+    private get ttsBase(): string {
+        const url = (import.meta.env.VITE_TTS_API_URL as string) || "http://localhost:5050";
+        return url.replace(/\/$/, "");
+    }
+
+    private stopCurrentAudio(): void {
+        if (this.currentAudio) {
+            try {
+                this.currentAudio.pause();
+            } catch {
+                /* ignore */
+            }
+            this.currentAudio = null;
+        }
+    }
+
+    private onSpeechDone = () => {
+        this.status = "idle";
+        this.scheduleClear();
+        this.startRec();
+    };
+
     private speak(text: string) {
         this.status = "speaking";
         this.caption = text;
 
-        const done = () => {
-            this.status = "idle";
-            this.scheduleClear();
-            this.startRec();
-        };
+        // Prefer the cloned voice; fall back to the browser voice if it's down.
+        if (this.ttsOk === false) {
+            this.speakBrowser(text);
+            return;
+        }
+        this.speakCloned(text).catch(() => {
+            this.ttsOk = false;
+            this.speakBrowser(text);
+        });
+    }
 
+    /** Fetch a WAV from the XTTS-v2 service and play it. Rejects so speak() can fall back. */
+    private speakCloned(text: string): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            (async () => {
+                const res = await fetch(`${this.ttsBase}/tts`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text }),
+                });
+                if (!res.ok) throw new Error(`tts ${res.status}`);
+                const blob = await res.blob();
+                if (!blob.size) throw new Error("empty audio");
+
+                window.speechSynthesis?.cancel();
+                this.stopCurrentAudio();
+
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                this.currentAudio = audio;
+                this.ttsOk = true;
+
+                const cleanup = () => {
+                    URL.revokeObjectURL(url);
+                    if (this.currentAudio === audio) this.currentAudio = null;
+                };
+                audio.onended = () => {
+                    cleanup();
+                    this.onSpeechDone();
+                    resolve();
+                };
+                audio.onerror = () => {
+                    cleanup();
+                    reject(new Error("audio playback failed"));
+                };
+                await audio.play();
+            })().catch(reject);
+        });
+    }
+
+    /** Free browser voice — fallback when the cloned-voice service is unavailable. */
+    private speakBrowser(text: string) {
         if (!("speechSynthesis" in window)) {
-            done();
+            this.onSpeechDone();
             return;
         }
         try {
             window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(text);
+            if (!this.voice) this.voice = this.pickVoice(window.speechSynthesis.getVoices());
+            if (this.voice) {
+                u.voice = this.voice;
+                u.lang = this.voice.lang;
+            }
             u.rate = 1;
             u.pitch = 1.05;
-            u.onend = done;
-            u.onerror = done;
+            u.onend = this.onSpeechDone;
+            u.onerror = this.onSpeechDone;
             window.speechSynthesis.speak(u);
         } catch {
-            done();
+            this.onSpeechDone();
         }
     }
 
@@ -594,19 +701,14 @@ export class AiGuide extends LitElement {
                     <canvas class="rive" ?hidden=${!this.riveReady}></canvas>
                     ${this.riveReady
                         ? nothing
-                        : this.rigFailed
+                        : this.poseFailed
                           ? html`<span class="face">🧕</span>`
-                          : html`
-                                <div class="rig">
-                                    <img
-                                        class="layer base"
-                                        src="/assets/aoi/base.png"
-                                        alt="Aoi"
-                                        @error=${() => (this.rigFailed = true)}
-                                    />
-                                    <img class="layer arm" src="/assets/aoi/arm.png" alt="" />
-                                </div>
-                            `}
+                          : html`<img
+                                class="pose"
+                                src=${this.currentPose()}
+                                alt="Aoi"
+                                @error=${() => (this.poseFailed = true)}
+                            />`}
                 </div>
                 <div class="tag">Aoi · guide</div>
             </div>

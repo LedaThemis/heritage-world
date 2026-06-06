@@ -276,6 +276,7 @@ const SITES: HeritageSite[] = [
         description: "Unique wetland ecosystem, home to the Marsh Arabs and diverse wildlife in southern Iraq.",
         thumbnailPath: "./assets/sites/marshlands.png",
         modelPath: "./assets/models/mudhif.glb",
+        markerScale: 0.075,
         websiteUrl: "https://alqaba.com/iraq-marshes",
         virtualWalkthroughUrl: "https://www.alqaba.com/iraq-marshes/walkthrough",
         sketchfabUrl:
@@ -2307,19 +2308,27 @@ const createMapScene = async () => {
             const modelData = await ImportMeshAsync(site.modelPath, scene);
             const rootMesh = modelData.meshes[0];
 
+            let renderedMaxDim = 50; // fallback
             if (rootMesh) {
-                // Calculate bounding box to find center
+                // Calculate bounding box (true rendered size, incl. the model's internal scaling)
                 const boundingInfo = rootMesh.getHierarchyBoundingVectors();
                 const center = boundingInfo.max.add(boundingInfo.min).scale(0.5);
 
                 // Move model so its center is at origin
                 rootMesh.position.subtractInPlace(center);
+
+                const size = boundingInfo.max.subtract(boundingInfo.min);
+                renderedMaxDim = Math.max(size.x, size.y, size.z) || 50;
             }
 
             // Create parent container for positioning
             const siteContainer = new TransformNode(`site-model-${site.id}`, scene);
             siteContainer.position.copyFrom(site.position);
-            siteContainer.scaling = new Vector3(0.075, 0.075, 0.075);
+            // Normalize every marker to the same on-screen size (≈ marshlands), regardless of how
+            // big/small the model is intrinsically. Per-site markerScale still overrides if set.
+            const MARKER_TARGET = 3.75;
+            const markerScale = site.markerScale ?? MARKER_TARGET / renderedMaxDim;
+            siteContainer.scaling = new Vector3(markerScale, markerScale, markerScale);
             siteContainer.position.subtractInPlace(new Vector3(0, 0.25, 0));
 
             // Parent all meshes to the container
@@ -2438,6 +2447,9 @@ const createMapScene = async () => {
                 const visibleCount = updateSiteVisibility(era.id, siteClickBoxes, scene);
                 showInfoCard(era, visibleCount);
             });
+
+            // Aoi introduces the era the visitor just switched to (and listens for questions).
+            aiGuide?.describeEra(era);
         },
     });
 

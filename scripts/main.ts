@@ -220,9 +220,9 @@ const SITES: HeritageSite[] = [
         : []),
     {
         id: "1",
-        name: "Hosh Al-Bay'ah Collection",
+        name: "Al-Tahira Church Collection",
         position: new Vector3(-15, 1, 15),
-        description: "A historic collection showcasing traditional architecture and cultural heritage of the region.",
+        description: "A collection representing the historic Al-Tahira Church complex, one of Mosul's most important Christian heritage landmarks.",
         thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
         modelPath: "./assets/models/markers/AL-TAHIRA COLECTION.glb",
         worldModelPath: "./assets/models/al-tahira-world.glb",
@@ -254,9 +254,9 @@ const SITES: HeritageSite[] = [
     },
     {
         id: "2",
-        name: "Old City of Mosul",
+        name: "Al-Hadba Minaret",
         position: new Vector3(-12, 1, 11),
-        description: "Ancient city with centuries of history, featuring the iconic Al-Nuri Mosque and winding streets.",
+        description: "The famous leaning minaret of the Great Mosque of al-Nuri, a symbol of Mosul for centuries.",
         thumbnailPath: "./assets/sites/mosul.webp",
         modelPath: "./assets/models/markers/MANART AL-HADB'A.glb",
         virtualWalkthroughUrl: "https://www.alqaba.com/old-town/walkthrough",
@@ -280,7 +280,7 @@ const SITES: HeritageSite[] = [
         id: "3",
         name: "Erbil Citadel",
         position: new Vector3(-7.5, 1, 12.5),
-        description: "One of the oldest continuously inhabited settlements in the world, a UNESCO World Heritage site.",
+        description: "One of the world's oldest continuously inhabited settlements and a UNESCO World Heritage Site dominating central Erbil.",
         thumbnailPath: "./assets/sites/erbil.png",
         modelPath: "./assets/models/markers/ERBIL CITADEL.glb",
         comments: [
@@ -294,9 +294,9 @@ const SITES: HeritageSite[] = [
     },
     {
         id: "4",
-        name: "Baghdad Museum",
+        name: "Iraqi Museum Gate",
         position: new Vector3(-1.5, 1, -1),
-        description: "Home to priceless artifacts from Mesopotamian civilizations and Iraq's rich cultural history.",
+        description: "A reconstruction inspired by monumental Mesopotamian gateways displayed and preserved through the Iraqi Museum.",
         thumbnailPath: "./assets/sites/baghdad-museum.webp",
         modelPath: "./assets/models/markers/THE IRAQI MUSEUM GATE.glb",
         sketchfabUrl: "https://sketchfab.com/HusseinYaseen/collections/iraqi-museum-b2f69baa92d84b50a90711d5db7d7f18",
@@ -317,9 +317,9 @@ const SITES: HeritageSite[] = [
     },
     {
         id: "5",
-        name: "Uruk City",
+        name: "Ancient City of Uruk",
         position: new Vector3(0, 1, -15),
-        description: "Ancient Sumerian city-state, birthplace of writing and one of the world's first great cities.",
+        description: "One of the world's earliest cities and a major center of Sumerian civilization associated with the origins of writing and urban life.",
         thumbnailPath: "./assets/sites/uruk.jpg",
         modelPath: "./assets/models/markers/URUK CITY RUIN.glb",
         sketchfabUrl: "https://sketchfab.com/HusseinYaseen/collections/uruk-city-0281a1d074b74daf937ccd853b9ec4fc",
@@ -374,7 +374,7 @@ const SITES: HeritageSite[] = [
         id: "7",
         name: "Al-Ukhaidir Fortress",
         position: new Vector3(-3, 1, -6),
-        description: "An impressive Abbasid fortress in the desert south of Karbala.",
+        description: "A large fortified Abbasid-era desert palace renowned for its innovative Islamic architectural design and defensive walls.",
         thumbnailPath: "./assets/sites/hosh-al-bayah.svg",
         modelPath: "./assets/models/markers/7SN AL-AKIDER.glb",
         comments: [
@@ -388,9 +388,9 @@ const SITES: HeritageSite[] = [
     },
     {
         id: "8",
-        name: "Walls of Mosul",
+        name: "Mosul City Walls",
         position: new Vector3(-13, 1, 12),
-        description: "The ancient defensive walls surrounding the historic city of Mosul.",
+        description: "The historic defensive walls that once surrounded Mosul, reflecting the city's strategic and cultural importance through centuries.",
         thumbnailPath: "./assets/sites/mosul.webp",
         modelPath: "./assets/models/markers/ASWAR MOSUL.glb",
         comments: [
@@ -412,7 +412,7 @@ const SITES: HeritageSite[] = [
         id: "9",
         name: "Hatra Temple",
         position: new Vector3(-10, 1, 6),
-        description: "An ancient city in the Nineveh Governorate and a UNESCO World Heritage site.",
+        description: "Monumental temple architecture from the ancient city of Hatra, blending Mesopotamian, Greek, and Roman influences.",
         thumbnailPath: "./assets/sites/mosul.webp",
         modelPath: "./assets/models/markers/HATTAR TEMPLE.glb",
         comments: [
@@ -432,9 +432,9 @@ const SITES: HeritageSite[] = [
     },
     {
         id: "10",
-        name: "Babylon",
+        name: "Lion of Babylon",
         position: new Vector3(-1.5, 1, -3),
-        description: "One of the most famous cities of antiquity, known for its impressive walls and the Lion of Babylon.",
+        description: "A famous basalt statue symbolizing the power and legacy of ancient Babylon.",
         thumbnailPath: "./assets/sites/baghdad-museum.webp",
         modelPath: "./assets/models/markers/LION OF BABYLON.glb",
         comments: [
@@ -454,9 +454,9 @@ const SITES: HeritageSite[] = [
     },
     {
         id: "11",
-        name: "Malwiya Minaret",
+        name: "Great Mosque of Samarra and Malwiya Minaret",
         position: new Vector3(-3, 1, 4),
-        description: "The iconic spiraling cone minaret of the Great Mosque of Samarra.",
+        description: "An iconic spiral minaret and one of the most recognizable monuments of early Islamic architecture.",
         thumbnailPath: "./assets/sites/baghdad-museum.webp",
         modelPath: "./assets/models/markers/MALWIAT SAMARA.glb",
         comments: [
@@ -476,9 +476,9 @@ const SITES: HeritageSite[] = [
     },
     {
         id: "12",
-        name: "Anah Minaret",
+        name: "Ana Minaret",
         position: new Vector3(-8, 1, 5),
-        description: "An ancient minaret representing the historic town of Anah on the Euphrates.",
+        description: "A historic minaret from the ancient town of Ana on the Euphrates, representing Iraq's Islamic architectural heritage.",
         thumbnailPath: "./assets/sites/mosul.webp",
         modelPath: "./assets/models/markers/MANART A'ANA.glb",
         comments: [
@@ -492,9 +492,9 @@ const SITES: HeritageSite[] = [
     },
     {
         id: "13",
-        name: "Ur Ziggurat",
+        name: "Ziggurat of Ur",
         position: new Vector3(2, 1, -12),
-        description: "A Neo-Sumerian ziggurat in the ancient city of Ur near Nasiriyah.",
+        description: "One of the best-preserved Sumerian monuments, built as a massive stepped temple dedicated to the moon god Nanna.",
         thumbnailPath: "./assets/sites/uruk.jpg",
         modelPath: "./assets/models/markers/OUR ZAQURAT.glb",
         comments: [
@@ -514,9 +514,9 @@ const SITES: HeritageSite[] = [
     },
     {
         id: "14",
-        name: "Taq Kasra",
+        name: "Taq Kasra (Arch of Ctesiphon)",
         position: new Vector3(-1, 1, -2),
-        description: "The magnificent vault of the palace of the Sasanian kings at Ctesiphon.",
+        description: "The monumental vaulted arch of the Sasanian palace complex at Ctesiphon, one of the largest single-span brick arches in the world.",
         thumbnailPath: "./assets/sites/baghdad-museum.webp",
         modelPath: "./assets/models/markers/TUQ KISRA.glb",
         comments: [

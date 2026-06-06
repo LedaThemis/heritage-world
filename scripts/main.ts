@@ -1838,6 +1838,7 @@ const createMapScene = async () => {
     leftContainer.style.flexDirection = "column";
     leftContainer.style.gap = "20px";
     leftContainer.style.maxWidth = "390px";
+    leftContainer.classList.add("heritage-left-container");
     document.body.appendChild(leftContainer);
 
     // Create website header in top left
@@ -1979,9 +1980,45 @@ const createMapScene = async () => {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.5);
         }
+
+        /* ============================================
+           RESPONSIVE — Phone screens
+           ============================================ */
+        @media (max-width: 640px) {
+            /* Site detail panel: full-width sheet anchored with side margins.
+               Open/close still works via transform (translateX). */
+            .site-detail-panel {
+                width: auto !important;
+                left: 12px !important;
+                right: 12px !important;
+                top: 12px !important;
+                max-height: calc(100dvh - 24px) !important;
+                padding: 18px !important;
+                gap: 14px !important;
+                border-radius: 14px !important;
+            }
+            .site-detail-panel > h2 {
+                font-size: 20px !important;
+            }
+
+            /* Left UI column (header + site list): fit the viewport, no horizontal overflow. */
+            .heritage-left-container {
+                left: 12px !important;
+                right: 12px !important;
+                top: 12px !important;
+                max-width: none !important;
+                gap: 12px !important;
+            }
+            .heritage-site-list {
+                width: auto !important;
+                max-height: 38vh !important;
+                padding: 16px !important;
+            }
+        }
     `;
     document.head.appendChild(style);
     sidePanel.classList.add("custom-scrollbar");
+    sidePanel.classList.add("heritage-site-list");
 
     leftContainer.appendChild(sidePanel);
     
@@ -1996,11 +2033,17 @@ const createMapScene = async () => {
     panelHeader.style.fontWeight = "bold";
     sidePanel.appendChild(panelHeader);
 
+    // Slide transforms for the detail panel. The panel anchors at a fixed `right`
+    // and slides via `transform` (not `right`) so mobile media queries can resize and
+    // reposition it (full-width) without breaking the open/close animation.
+    const PANEL_OPEN_TRANSFORM = "translateX(0) translateZ(0)";
+    const PANEL_CLOSED_TRANSFORM = "translateX(calc(100% + 40px)) translateZ(0)";
+
     // Create right panel for site details (hidden by default)
     const experienceContainer = document.createElement("div");
     experienceContainer.style.position = "fixed";
     experienceContainer.style.top = "20px";
-    experienceContainer.style.right = "-400px"; // Start off-screen
+    experienceContainer.style.right = "20px"; // static anchor; visibility handled via transform
     experienceContainer.style.width = "360px";
     experienceContainer.style.maxHeight = "calc(100vh - 40px)";
     experienceContainer.style.overflowY = "auto";
@@ -2015,11 +2058,12 @@ const createMapScene = async () => {
     experienceContainer.style.display = "flex";
     experienceContainer.style.flexDirection = "column";
     experienceContainer.style.gap = "20px";
-    experienceContainer.style.transition = "right 0.4s cubic-bezier(0.4, 0, 0.2, 1)";
+    experienceContainer.style.transition = "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)";
     experienceContainer.style.fontFamily = "sans-serif";
     experienceContainer.style.willChange = "transform";
-    experienceContainer.style.transform = "translateZ(0)";
+    experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM; // start off-screen
     experienceContainer.classList.add("custom-scrollbar");
+    experienceContainer.classList.add("site-detail-panel");
     document.body.appendChild(experienceContainer);
 
     // Create site title
@@ -2307,7 +2351,7 @@ const createMapScene = async () => {
     const unfocusSite = () => {
         if (!currentFocusedSite) return;
         currentFocusedSite = null;
-        experienceContainer.style.right = "-400px"; // Animate out
+        experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM; // Animate out
         animateCameraFocus(Vector3.Zero(), 60);
     };
 
@@ -2455,7 +2499,7 @@ const createMapScene = async () => {
 
         siteCard.addEventListener("click", () => {
             currentFocusedSite = site.id;
-            experienceContainer.style.right = "-400px";
+            experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM;
 
             const targetPosition = site.position.clone();
             targetPosition.y = 0;
@@ -2480,7 +2524,7 @@ const createMapScene = async () => {
                 updatePanelWithSite(site);
 
                 // Animate panel in
-                experienceContainer.style.right = "20px";
+                experienceContainer.style.transform = PANEL_OPEN_TRANSFORM;
             });
         });
 
@@ -2583,7 +2627,7 @@ const createMapScene = async () => {
             const clickedMesh = pointerInfo.pickInfo.pickedMesh;
             const target = clickedMesh.name.replace("site-", "");
 
-            experienceContainer.style.right = "-400px"; // Animate out
+            experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM; // Animate out
             currentFocusedSite = target;
 
             // Find and display site description
@@ -2617,7 +2661,7 @@ const createMapScene = async () => {
 
             animateCameraFocus(targetPosition, targetRadius, finalAlpha, animationDuration, () => {
                 // Animate panel in
-                experienceContainer.style.right = "20px";
+                experienceContainer.style.transform = PANEL_OPEN_TRANSFORM;
             });
         } else if (
             pointerInfo.pickInfo?.hit &&
@@ -2626,7 +2670,7 @@ const createMapScene = async () => {
         ) {
             // Clicking the ground/model refocuses to center
             currentFocusedSite = null;
-            experienceContainer.style.right = "-400px"; // Animate out
+            experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM; // Animate out
             animateCameraFocus(Vector3.Zero(), 60);
         }
     });

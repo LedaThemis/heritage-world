@@ -229,6 +229,14 @@ export const injectCommentStyles = (): void => {
             color: rgba(201, 168, 76, 0.65);
             letter-spacing: 0.2px;
         }
+
+        /* ---- Responsive: phones ---- */
+        @media (max-width: 640px) {
+            .sc-section { padding-top: 16px; gap: 12px; }
+            .sc-comment { padding: 10px 12px; gap: 10px; }
+            .sc-avatar { width: 32px; height: 32px; font-size: 13px; }
+            .sc-comment__text { font-size: 13px; }
+        }
     `;
 
     document.head.appendChild(styleElement);

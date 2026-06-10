@@ -31,7 +31,11 @@ import {
     GPUParticleSystem,
 } from "@babylonjs/core";
 import { Client, getStateCallbacks, Room } from "colyseus.js";
-import { registerBuiltInLoaders } from "@babylonjs/loaders/dynamic";
+// Statically register the glTF loader + extensions (side-effect import).
+// NOTE: do NOT use "@babylonjs/loaders/dynamic" + registerBuiltInLoaders() here:
+// its on-demand `await import()` factories deadlock under Vite/Rollup code-splitting
+// in the production build, so ImportMeshAsync(".glb") hangs forever (works in dev only).
+import "@babylonjs/loaders/glTF";
 import { createTimelinePanel, destroyTimeline } from "./timeline/timelinePanel";
 import { showInfoCard } from "./timeline/timelineInfoCard";
 import { animateCameraToEra, updateSiteVisibility } from "./timeline/timelineAnimations";
@@ -2775,8 +2779,6 @@ const startGame = async (nickname: string) => {
     );
     if (aiGuide) aiGuide.site = selectedSite;
 };
-
-registerBuiltInLoaders();
 
 // Mount the AI tour guide (Aoi). Persists across the map and site scenes.
 aiGuide = document.createElement("ai-guide") as AiGuide;

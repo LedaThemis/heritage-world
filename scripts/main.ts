@@ -43,8 +43,6 @@ import { SITE_ERA_MAP, HISTORICAL_ERAS } from "./timeline/timelineData";
 import { initCloudTransition, triggerCloudTransition, disposeCloudTransition } from "./timeline/cloudTransition";
 import { createCommentsSection } from "./comments/siteComments";
 import type { PlayerRoomType, HeritageSite } from "./types";
-import "./ui/components/ai-guide";
-import type { AiGuide } from "./ui/components/ai-guide";
 
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement | null;
 
@@ -566,7 +564,6 @@ const maxPixelRatio = Math.min(window.devicePixelRatio, 1.5);
 engine.setHardwareScalingLevel(window.devicePixelRatio / maxPixelRatio);
 let activeScene: Scene | null = null;
 let selectedSite: HeritageSite | null = null;
-let aiGuide: AiGuide | null = null;
 const playerEntities: { [key: string]: Mesh | TransformNode } = {};
 const playerNextPosition: { [key: string]: Vector3 } = {};
 const playerNextRotation: { [key: string]: Quaternion } = {};
@@ -1814,23 +1811,6 @@ const createScene = async function (
         }
     });
 
-    // ---- Aoi (the on-screen guide) travels with the player into the site ----
-    if (aiGuide) {
-        aiGuide.site = selectedSite;
-        aiGuide.greet(); // she welcomes you to this site, then listens hands-free
-    }
-    const onGuideKey = (e: KeyboardEvent) => {
-        if (e.repeat) return;
-        const k = e.key.toLowerCase();
-        if (k === "e") aiGuide?.greet();
-        else if (k === "v") aiGuide?.toggleListen();
-    };
-    window.addEventListener("keydown", onGuideKey);
-    scene.onDisposeObservable.add(() => {
-        aiGuide?.deactivate();
-        window.removeEventListener("keydown", onGuideKey);
-    });
-
     return scene;
 };
 
@@ -2678,12 +2658,6 @@ const createMapScene = async () => {
             if (siteData) {
                 // Populate panel with site data
                 updatePanelWithSite(siteData);
-
-                // Aoi talks about the clicked site (and listens for follow-up questions)
-                if (aiGuide) {
-                    aiGuide.site = siteData;
-                    aiGuide.greet();
-                }
             }
 
             // Animate camera to focus on the clicked cube
@@ -2721,12 +2695,8 @@ const createMapScene = async () => {
             currentFocusedSite = null;
             experienceContainer.style.transform = PANEL_CLOSED_TRANSFORM; // Animate out
             animateCameraFocus(Vector3.Zero(), 60);
-            aiGuide?.deactivate(); // stop Aoi when you click away from a site
         }
     });
-
-    // Turn Aoi's mic off when leaving the map (e.g. entering a site).
-    scene.onDisposeObservable.add(() => aiGuide?.deactivate());
 
     // --- Mount Timeline Navigation ---
     // Track whether this is the initial load (skip transition for first era)
@@ -2750,9 +2720,6 @@ const createMapScene = async () => {
                 const visibleCount = updateSiteVisibility(era.id, siteClickBoxes, scene);
                 showInfoCard(era, visibleCount);
             });
-
-            // Aoi introduces the era the visitor just switched to (and listens for questions).
-            aiGuide?.describeEra(era);
         },
     });
 
@@ -2777,13 +2744,7 @@ const startGame = async (nickname: string) => {
         selectedSite?.worldPlayerSpawnPosition,
         selectedSite?.worldPlayerRotation
     );
-    if (aiGuide) aiGuide.site = selectedSite;
 };
-
-// Mount the AI tour guide (Aoi). Persists across the map and site scenes.
-aiGuide = document.createElement("ai-guide") as AiGuide;
-document.body.appendChild(aiGuide);
-aiGuide.site = selectedSite;
 
 if (LOAD_SITE_ON_START === null) {
     activeScene = await createMapScene();
